@@ -1,0 +1,26 @@
+
+# Règles du .gitignore de Frontend
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/build
+/captures
+/.externalNativeBuild
+/.cxx
+local.properties
+# Android/IntelliJ/Gradle
+.idea/
+*.iml
+local.properties
+/.gradle/
+/build/
+Frontend/.gradle/
+Frontend/build/
+Frontend/app/build/
+.DS_Store
