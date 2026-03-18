@@ -1,4 +1,4 @@
-package com.example.frontend_mobile_etape1.data.dto
+package com.example.frontend.data.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
