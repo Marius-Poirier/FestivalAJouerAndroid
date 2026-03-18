@@ -1,5 +1,6 @@
 package com.example.frontend.core.network
 
+import com.example.frontend.api.FestivalApiService
 import com.example.frontend.api.auth.AuthApiService
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -40,5 +41,9 @@ object RetrofitInstance {
 
     val authApi: AuthApiService by lazy {
         retrofit.create(AuthApiService::class.java)
+    }
+
+    val festivalApi: FestivalApiService by lazy {
+        retrofit.create(FestivalApiService::class.java)
     }
 }
