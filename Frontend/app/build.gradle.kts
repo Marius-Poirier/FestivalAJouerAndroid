@@ -9,8 +9,8 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.frontend_mobile_etape1"
-        minSdk = 24
+        applicationId = "com.example.frontend"
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"

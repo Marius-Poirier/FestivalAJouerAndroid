@@ -1,8 +1,8 @@
-package com.example.frontend_mobile_etape1.data.repository
+package com.example.frontend.data.repository
 
-import com.example.frontend_mobile_etape1.api.FestivalApiService
-import com.example.frontend_mobile_etape1.data.dto.CreateFestivalRequest
-import com.example.frontend_mobile_etape1.data.dto.FestivalDto
+import com.example.frontend.api.FestivalApiService
+import com.example.frontend.data.dto.CreateFestivalRequest
+import com.example.frontend.data.dto.FestivalDto
 
 class FestivalRepository(private val api: FestivalApiService) {
 

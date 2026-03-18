@@ -1,6 +1,7 @@
 package com.example.frontend_mobile_etape1.core.network
 
-import com.example.frontend_mobile_etape1.api.*
+import com.example.frontend.api.FestivalApiService
+import com.example.frontend.api.auth.AuthApiService
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -42,35 +43,7 @@ object RetrofitInstance {
         retrofit.create(AuthApiService::class.java)
     }
 
-    val userApi: UserApiService by lazy {
-        retrofit.create(UserApiService::class.java)
-    }
-
     val festivalApi: FestivalApiService by lazy {
         retrofit.create(FestivalApiService::class.java)
-    }
-
-    val jeuApi: JeuApiService by lazy {
-        retrofit.create(JeuApiService::class.java)
-    }
-
-    val editeurApi: EditeurApiService by lazy {
-        retrofit.create(EditeurApiService::class.java)
-    }
-
-    val reservationApi: ReservationApiService by lazy {
-        retrofit.create(ReservationApiService::class.java)
-    }
-
-    val planApi: PlanApiService by lazy {
-        retrofit.create(PlanApiService::class.java)
-    }
-
-    val assignationApi: AssignationApiService by lazy {
-        retrofit.create(AssignationApiService::class.java)
-    }
-
-    val metadataApi: MetadataApiService by lazy {
-        retrofit.create(MetadataApiService::class.java)
     }
 }
