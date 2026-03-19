@@ -1,0 +1,27 @@
+package com.example.frontend.api.auth
+
+import com.example.frontend.data.dto.LoginRequest
+import com.example.frontend.data.dto.LoginResponse
+import com.example.frontend.data.dto.RegisterRequest
+import com.example.frontend.data.dto.UserMeResponse
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+
+interface AuthApiService {
+    @POST("auth/login")
+    suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    @POST("auth/logout")
+    suspend fun logout(): Response<Unit>
+
+    @POST("auth/register")
+    suspend fun register(@Body request: RegisterRequest): Response<Unit>
+
+    @POST("auth/refresh")
+    suspend fun refresh(): Response<Unit>
+
+    @GET("users/me")
+    suspend fun getMe(): Response<UserMeResponse>
+}

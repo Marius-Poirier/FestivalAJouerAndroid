@@ -2,11 +2,6 @@ package com.example.frontend_mobile_etape1.ui.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-<<<<<<< HEAD:Frontend/app/src/main/java/com/example/frontend_mobile_etape1/ui/screens/auth/LoginViewModel.kt
-import com.example.frontend_mobile_etape1.core.auth.AuthManager
-import com.example.frontend_mobile_etape1.core.network.RetrofitInstance
-import com.example.frontend_mobile_etape1.data.repository.AuthRepository
-=======
 import com.example.frontend.core.network.RetrofitInstance
 import com.example.frontend.data.repository.AuthRepository
 >>>>>>> 7665606 (-correction de la gestion de l'utilisateur connecté, ajout de la route auth/me et modification de whoiam pour stocker l'utilisateur courant):Frontend/app/src/main/java/com/example/frontend/ui/screens/auth/LoginViewModel.kt

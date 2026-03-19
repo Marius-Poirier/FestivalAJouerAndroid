@@ -1,11 +1,11 @@
-package com.example.frontend_mobile_etape1.data.repository
+package com.example.frontend.data.repository
 
-import com.example.frontend_mobile_etape1.api.JeuApiService
-import com.example.frontend_mobile_etape1.api.MetadataApiService
-import com.example.frontend_mobile_etape1.data.dto.CreateJeuRequest
-import com.example.frontend_mobile_etape1.data.dto.JeuDto
-import com.example.frontend_mobile_etape1.data.dto.MecanismeDto
-import com.example.frontend_mobile_etape1.data.dto.TypeJeuDto
+import com.example.frontend.api.JeuApiService
+import com.example.frontend.api.MetadataApiService
+import com.example.frontend.data.dto.CreateJeuRequest
+import com.example.frontend.data.dto.JeuDto
+import com.example.frontend.data.dto.MecanismeDto
+import com.example.frontend.data.dto.TypeJeuDto
 
 class JeuRepository(
     private val jeuApi: JeuApiService,
