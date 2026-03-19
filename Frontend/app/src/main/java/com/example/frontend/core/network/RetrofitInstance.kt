@@ -1,6 +1,9 @@
 package com.example.frontend.core.network
 
+import com.example.frontend.api.JeuApiService
+import com.example.frontend.api.MetadataApiService
 import com.example.frontend.api.auth.AuthApiService
+import com.example.frontend.core.auth.AuthManager
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -40,5 +43,17 @@ object RetrofitInstance {
 
     val authApi: AuthApiService by lazy {
         retrofit.create(AuthApiService::class.java)
+    }
+
+    val jeuApi: JeuApiService by lazy {
+        retrofit.create(JeuApiService::class.java)
+    }
+
+    val metadataApi: MetadataApiService by lazy {
+        retrofit.create(MetadataApiService::class.java)
+    }
+
+    val authManager: AuthManager by lazy {
+        AuthManager(authApi, cookieJar)
     }
 }

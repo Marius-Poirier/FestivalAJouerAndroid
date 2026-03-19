@@ -42,10 +42,14 @@ class AuthManager(
      */
     suspend fun whoami(): Boolean {
         return try {
-            // Note: If whoami endpoint is different, update AuthApiService accordingly
-            // For now assuming getMe() exists or using what's available
-            val response = apiService.refresh() // Temporary placeholder if whoami missing
-            response.isSuccessful
+            val response = apiService.getMe()
+            if (response.isSuccessful && response.body() != null) {
+                _currentUser.value = response.body()
+                true
+            } else {
+                _currentUser.value = null
+                false
+            }
         } catch (e: Exception) {
             _currentUser.value = null
             false
