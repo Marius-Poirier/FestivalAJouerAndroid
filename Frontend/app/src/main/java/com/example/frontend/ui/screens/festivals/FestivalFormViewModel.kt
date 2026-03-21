@@ -7,6 +7,9 @@ import com.example.frontend.data.repository.FestivalRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 data class FestivalFormUiState(
     val isLoading: Boolean = false,
@@ -39,8 +42,8 @@ class FestivalFormViewModel(private val festivalId: Int? = null) : ViewModel() {
                     isLoading = false,
                     nom = f.nom,
                     lieu = f.lieu,
-                    dateDebut = f.dateDebut,
-                    dateFin = f.dateFin
+                    dateDebut = isoToDdMmYyyy(f.dateDebut),
+                    dateFin = isoToDdMmYyyy(f.dateFin)
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
@@ -53,24 +56,68 @@ class FestivalFormViewModel(private val festivalId: Int? = null) : ViewModel() {
     fun onDateDebutChange(v: String) { _uiState.value = _uiState.value.copy(dateDebut = v) }
     fun onDateFinChange(v: String) { _uiState.value = _uiState.value.copy(dateFin = v) }
 
+    fun resetSuccess() {
+        _uiState.value = _uiState.value.copy(
+            isSuccess = false,
+            nom = "",
+            lieu = "",
+            dateDebut = "",
+            dateFin = ""
+        )
+    }
+
     fun save() {
         val s = _uiState.value
         if (s.nom.isBlank() || s.lieu.isBlank() || s.dateDebut.isBlank() || s.dateFin.isBlank()) {
             _uiState.value = s.copy(error = "Tous les champs sont obligatoires")
             return
         }
+        val isoDebut = ddMmYyyyToIso(s.dateDebut)
+        val isoFin = ddMmYyyyToIso(s.dateFin)
+        if (isoDebut == null || isoFin == null) {
+            _uiState.value = s.copy(error = "Format de date invalide. Utilisez JJ-MM-AAAA (ex: 21-03-2026)")
+            return
+        }
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true, error = null)
             try {
-                if (festivalId != null) {
-                    festivalRepository.update(festivalId, s.nom.trim(), s.lieu.trim(), s.dateDebut.trim(), s.dateFin.trim())
+                val response = if (festivalId != null) {
+                    festivalRepository.update(festivalId, s.nom.trim(), s.lieu.trim(), isoDebut, isoFin)
                 } else {
-                    festivalRepository.create(s.nom.trim(), s.lieu.trim(), s.dateDebut.trim(), s.dateFin.trim())
+                    festivalRepository.create(s.nom.trim(), s.lieu.trim(), isoDebut, isoFin)
                 }
-                _uiState.value = _uiState.value.copy(isSaving = false, isSuccess = true)
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(isSaving = false, isSuccess = true)
+                } else {
+                    _uiState.value = _uiState.value.copy(isSaving = false, error = "Erreur serveur (${response.code()})")
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
             }
+            _uiState.value = _uiState.value.copy(isSaving = false)
+        }
+    }
+
+    // "21-03-2026" → "2026-03-21" conversion frontend backend
+    private fun ddMmYyyyToIso(date: String): String? {
+        return try {
+            val cleaned = date.trim()
+            val parsed = LocalDate.parse(cleaned, DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+            parsed.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        } catch (e: DateTimeParseException) {
+            null
+        }
+    }
+
+    // "2026-03-21" → "21-03-2026" convertion backend frontend
+    private fun isoToDdMmYyyy(date: String?): String {
+        if (date.isNullOrBlank()) return ""
+        return try {
+            val cleaned = date.substringBefore('T')
+            val parsed = LocalDate.parse(cleaned, DateTimeFormatter.ISO_LOCAL_DATE)
+            parsed.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+        } catch (e: DateTimeParseException) {
+            date
         }
     }
 }

@@ -1,15 +1,14 @@
 package com.example.frontend.ui.screens.festivals
 
-import android.R.attr.button
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -19,12 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.frontend.data.dto.FestivalDto
+import com.example.frontend.ui.components.AppTopBar
+import com.example.frontend.ui.composants.ErrorMessage
+import com.example.frontend.ui.composants.messageConfirmation
 import com.example.frontend.ui.theme.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -36,11 +37,27 @@ fun FestivalListScreen(
     onEditFestival: (Int) -> Unit,
     viewModel: FestivalListViewModel = viewModel()
 ) {
+    LaunchedEffect(Unit) { viewModel.load() }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val canManage = viewModel.authManager.isAdminSuperorga
+    val currentUser by viewModel.authManager.currentUser.collectAsStateWithLifecycle()
+    val canManage = currentUser != null && viewModel.authManager.isAdminSuperorga
     var festivalToDelete by remember { mutableStateOf<FestivalDto?>(null) }
 
+    if (festivalToDelete != null) {
+        messageConfirmation(
+            itemName = festivalToDelete!!.nom,
+            onConfirm = {
+                festivalToDelete!!.id?.let { viewModel.delete(it) }
+                festivalToDelete = null
+            },
+            onDismiss = { festivalToDelete = null }
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize().background(AppBackground)) {
+        AppTopBar(title = "Festivals")
+
         // En-tête page
         Row(
             modifier = Modifier
@@ -54,14 +71,43 @@ fun FestivalListScreen(
                 Text("${uiState.festivals.size} festival(s)", fontSize = 10.sp, color = TextMuted)
             }
             if (canManage) {
-                Text("+")
+                FloatingActionButton(
+                    onClick = onAddFestival,
+                    modifier = Modifier.size(36.dp),
+                    containerColor = BrightBlue,
+                    contentColor = Color.White,
+                    shape = CircleShape
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Ajouter",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
+        if (uiState.error != null) {
+            ErrorMessage(uiState.error!!, modifier = Modifier.padding(horizontal = 16.dp))
+        }
+
         if (uiState.isLoading) {
-            Text("Chargement")
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = BrightBlue)
+            }
         } else if (uiState.festivals.isEmpty()) {
-            Text("🎪 Aucun festival trouvé")
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("🎪", fontSize = 48.sp)
+                Spacer(Modifier.height(12.dp))
+                Text("Aucun festival trouvé", fontSize = 14.sp, color = TextMuted)
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -135,7 +181,7 @@ private fun FestivalCard(
                         .background(Color(0xFFDBEAFE))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Text("📅 ${formatDateFr(festival.dateDebut)}", fontSize = 10.sp,
+                    Text("📅 ${formatDate(festival.dateDebut)}", fontSize = 10.sp,
                         fontWeight = FontWeight.Bold, color = NavyBlue)
                 }
                 Box(
@@ -144,7 +190,7 @@ private fun FestivalCard(
                         .background(Color(0xFFDBEAFE))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Text("🏁 ${formatDateFr(festival.dateFin)}", fontSize = 10.sp,
+                    Text("🏁 ${formatDate(festival.dateFin)}", fontSize = 10.sp,
                         fontWeight = FontWeight.Bold, color = NavyBlue)
                 }
             }
@@ -152,39 +198,7 @@ private fun FestivalCard(
     }
 }
 
-private val sampleFestival = FestivalDto(
-    id = 1,
-    nom = "Festival à Jouer 2025",
-    lieu = "Liège, Belgique",
-    dateDebut = "2025-03-01",
-    dateFin = "2025-03-03"
-)
-
-@Preview(showBackground = true, name = "Festival Card - Administrateur")
-@Composable
-private fun FestivalCardAdminPreview() {
-    FestivalCard(
-        festival = sampleFestival,
-        canManage = true,
-        onClick = {},
-        onEdit = {},
-        onDelete = {}
-    )
-}
-
-@Preview(showBackground = true, name = "Festival Card - Visiteur")
-@Composable
-private fun FestivalCardVisitorPreview() {
-    FestivalCard(
-        festival = sampleFestival,
-        canManage = false,
-        onClick = {},
-        onEdit = {},
-        onDelete = {}
-    )
-}
-
-fun formatDateFr(iso: String?): String {
+private fun formatDate(iso: String?): String {
     if (iso.isNullOrBlank()) return "—"
     return try {
         val cleaned = iso.substringBefore('T')

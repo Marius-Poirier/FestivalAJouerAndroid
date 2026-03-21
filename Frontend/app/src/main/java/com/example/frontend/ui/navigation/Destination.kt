@@ -9,5 +9,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object Login
 @Serializable data object Register
 @Serializable data object Home
+@Serializable data object Festivals
+@Serializable data class FestivalForm(val festivalId: Int? = null)
+
 
 

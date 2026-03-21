@@ -2,7 +2,6 @@ package com.example.frontend.ui.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.frontend.core.auth.AuthManager
 import com.example.frontend.core.network.RetrofitInstance
 import com.example.frontend.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +17,7 @@ data class LoginUiState(
 class LoginViewModel() : ViewModel() {
 
     private val authRepository = AuthRepository(RetrofitInstance.authApi)
-    private val authManager = AuthManager(RetrofitInstance.authApi, RetrofitInstance.cookieJar)
+    private val authManager = RetrofitInstance.authManager
 
 
     private val _uiState = MutableStateFlow(LoginUiState())
