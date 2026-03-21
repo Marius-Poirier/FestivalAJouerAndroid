@@ -2,6 +2,7 @@ package com.example.frontend_mobile_etape1.core.network
 
 import com.example.frontend.api.FestivalApiService
 import com.example.frontend.api.auth.AuthApiService
+import com.example.frontend.core.auth.AuthManager
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -45,5 +46,9 @@ object RetrofitInstance {
 
     val festivalApi: FestivalApiService by lazy {
         retrofit.create(FestivalApiService::class.java)
+    }
+
+    val authManager: AuthManager by lazy {
+        AuthManager(authApi, cookieJar)
     }
 }

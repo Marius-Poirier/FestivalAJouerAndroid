@@ -10,61 +10,43 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.frontend.ui.components.AppTopBar
+import com.example.frontend.ui.screens.festivals.FestivalFormViewModel
+import com.example.frontend.ui.composants.ErrorMessage
 import com.example.frontend.ui.theme.AppBackground
-import com.example.frontend.ui.theme.NavyBlue
 import com.example.frontend.ui.theme.BrightBlue
-
+import com.example.frontend.ui.theme.NavyBlue
 
 @Composable
 fun FestivalFormScreen(
     festivalId: Int? = null,
     onBack: () -> Unit,
     viewModel: FestivalFormViewModel = viewModel(
+        key = "festival_form_${festivalId}",
         factory = viewModelFactory { initializer { FestivalFormViewModel(festivalId) } }
     )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) onBack()
+        if (uiState.isSuccess) {
+            viewModel.resetSuccess()
+            onBack()
+        }
     }
 
-    FestivalFormContent(
-        nom = uiState.nom,
-        lieu = uiState.lieu,
-        dateDebut = uiState.dateDebut,
-        dateFin = uiState.dateFin,
-        isSaving = uiState.isSaving,
-        isEditMode = uiState.isEditMode,
-        onNomChange = viewModel::onNomChange,
-        onLieuChange = viewModel::onLieuChange,
-        onDateDebutChange = viewModel::onDateDebutChange,
-        onDateFinChange = viewModel::onDateFinChange,
-        onSave = viewModel::save
-    )
-}
-
-@Composable
-private fun FestivalFormContent(
-    nom: String,
-    lieu: String,
-    dateDebut: String,
-    dateFin: String,
-    isSaving: Boolean,
-    isEditMode: Boolean,
-    onNomChange: (String) -> Unit,
-    onLieuChange: (String) -> Unit,
-    onDateDebutChange: (String) -> Unit,
-    onDateFinChange: (String) -> Unit,
-    onSave: () -> Unit
-) {
     Column(modifier = Modifier.fillMaxSize().background(AppBackground)) {
+        AppTopBar(
+            title = if (uiState.isEditMode) "Modifier le festival" else "Nouveau festival",
+            showBackButton = true,
+            onBackClick = onBack
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -72,6 +54,8 @@ private fun FestivalFormContent(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            if (uiState.error != null) ErrorMessage(uiState.error!!)
+
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -81,69 +65,33 @@ private fun FestivalFormContent(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    FestivalTextField("Nom du festival *", nom, onNomChange)
-                    FestivalTextField("Lieu *", lieu, onLieuChange)
-                    FestivalTextField("Date de début (AAAA-MM-JJ) *", dateDebut, onDateDebutChange,
-                        placeholder = "2025-03-01")
-                    FestivalTextField("Date de fin (AAAA-MM-JJ) *", dateFin, onDateFinChange,
-                        placeholder = "2025-03-03")
+                    FestivalTextField("Nom du festival *", uiState.nom, viewModel::onNomChange)
+                    FestivalTextField("Lieu *", uiState.lieu, viewModel::onLieuChange)
+                    FestivalTextField("Date de début (JJ-MM-AAAA) *", uiState.dateDebut, viewModel::onDateDebutChange,
+                        placeholder = "01-03-2025")
+                    FestivalTextField("Date de fin (JJ-MM-AAAA) *", uiState.dateFin, viewModel::onDateFinChange,
+                        placeholder = "03-03-2025")
                 }
             }
 
             Button(
-                onClick = onSave,
+                onClick = viewModel::save,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                enabled = !isSaving,
+                enabled = !uiState.isSaving,
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = NavyBlue)
             ) {
-                if (isSaving) {
+                if (uiState.isSaving) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
                 } else {
                     Text(
-                        if (isEditMode) "Enregistrer les modifications" else "Créer le festival",
+                        if (uiState.isEditMode) "Enregistrer les modifications" else "Créer le festival",
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
     }
-}
-
-@Preview(showBackground = true, name = "Formulaire - Créer un festival")
-@Composable
-private fun FestivalFormCreatePreview() {
-    FestivalFormContent(
-        nom = "",
-        lieu = "",
-        dateDebut = "",
-        dateFin = "",
-        isSaving = false,
-        isEditMode = false,
-        onNomChange = {},
-        onLieuChange = {},
-        onDateDebutChange = {},
-        onDateFinChange = {},
-        onSave = {}
-    )
-}
-
-@Preview(showBackground = true, name = "Formulaire - Modifier un festival")
-@Composable
-private fun FestivalFormEditPreview() {
-    FestivalFormContent(
-        nom = "Festival à Jouer 2025",
-        lieu = "Liège, Belgique",
-        dateDebut = "2025-03-01",
-        dateFin = "2025-03-03",
-        isSaving = false,
-        isEditMode = true,
-        onNomChange = {},
-        onLieuChange = {},
-        onDateDebutChange = {},
-        onDateFinChange = {},
-        onSave = {}
-    )
 }
 
 @Composable

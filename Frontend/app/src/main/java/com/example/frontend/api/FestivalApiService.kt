@@ -14,13 +14,13 @@ interface FestivalApiService {
     suspend fun getFestival(@Path("id") id: Int): FestivalDto
 
     @POST("festivals")
-    suspend fun createFestival(@Body request: CreateFestivalRequest): Response<Map<String, Any>>
+    suspend fun createFestival(@Body request: CreateFestivalRequest): Response<Unit>
 
     @PUT("festivals/{id}")
     suspend fun updateFestival(
         @Path("id") id: Int,
         @Body request: CreateFestivalRequest
-    ): Response<Map<String, Any>>
+    ): Response<Unit>
 
     @DELETE("festivals/{id}")
     suspend fun deleteFestival(@Path("id") id: Int): Response<Unit>
