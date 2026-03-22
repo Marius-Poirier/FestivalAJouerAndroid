@@ -12,7 +12,9 @@ import kotlinx.serialization.Serializable
 @Serializable data object Login
 @Serializable data object Register
 @Serializable data object Home
-@Serializable data object FestivalList
+
+@Serializable data object Festivals
+
 @Serializable data object JeuList
 @Serializable data object EditeurList
 @Serializable data object Workflow
@@ -28,7 +30,7 @@ enum class BottomNavDestination(
     val icon: ImageVector,
     val contentDescription: String
 ) {
-    FESTIVALS(FestivalList, "Festivals", Icons.Default.Festival, "Festivals"),
+    FESTIVALS(Festivals, "Festivals", Icons.Default.Festival, "Festivals"),
     JEUX(JeuList, "Jeux", Icons.Default.Games, "Jeux"),
     EDITEURS(EditeurList, "Éditeurs", Icons.Default.Business, "Éditeurs"),
     WORKFLOW(Workflow, "Workflow", Icons.Default.AccountTree, "Workflow")

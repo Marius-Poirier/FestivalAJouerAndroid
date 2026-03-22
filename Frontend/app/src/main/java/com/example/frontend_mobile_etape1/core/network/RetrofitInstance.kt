@@ -45,6 +45,11 @@ object RetrofitInstance {
         retrofit.create(AuthApiService::class.java)
     }
 
+
+    val festivalApi: FestivalApiService by lazy {
+        retrofit.create(FestivalApiService::class.java)
+    }
+
     val jeuApi: JeuApiService by lazy {
         retrofit.create(JeuApiService::class.java)
     }
@@ -56,4 +61,5 @@ object RetrofitInstance {
     val authManager: AuthManager by lazy {
         AuthManager(authApi, cookieJar)
     }
+
 }

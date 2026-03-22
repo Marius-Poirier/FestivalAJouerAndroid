@@ -24,8 +24,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.frontend.data.dto.FestivalDto
 import com.example.frontend.ui.components.AppTopBar
-import com.example.frontend.ui.composants.ErrorMessage
-import com.example.frontend.ui.composants.messageConfirmation
+import com.example.frontend.ui.components.ErrorBanner
+import com.example.frontend.ui.components.ConfirmDeleteDialog
 import com.example.frontend.ui.theme.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -45,7 +45,7 @@ fun FestivalListScreen(
     var festivalToDelete by remember { mutableStateOf<FestivalDto?>(null) }
 
     if (festivalToDelete != null) {
-        messageConfirmation(
+        ConfirmDeleteDialog(
             itemName = festivalToDelete!!.nom,
             onConfirm = {
                 festivalToDelete!!.id?.let { viewModel.delete(it) }
@@ -88,7 +88,7 @@ fun FestivalListScreen(
         }
 
         if (uiState.error != null) {
-            ErrorMessage(uiState.error!!, modifier = Modifier.padding(horizontal = 16.dp))
+            ErrorBanner(uiState.error!!, modifier = Modifier.padding(horizontal = 16.dp))
         }
 
         if (uiState.isLoading) {
