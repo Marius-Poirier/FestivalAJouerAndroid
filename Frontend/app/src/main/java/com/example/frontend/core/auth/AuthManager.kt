@@ -37,13 +37,15 @@ class AuthManager(
     val isAdminSuperorga: Boolean get() = isAdmin || isSuperOrganisateur
 
     /**
-     * Vérifie la session auprès du backend (équivalent whoami Angular).
-     * Appelé au démarrage de l'app et après chaque navigation protégée.
+     * Vérifie la session auprès du backend et stocke l'utilisateur courant.
+     * Appelé au démarrage de l'app et après chaque login.
      */
     suspend fun whoami(): Boolean {
         return try {
             val response = apiService.getMe()
+
             if (response.isSuccessful && response.body() != null) {
+
                 _currentUser.value = response.body()
                 true
             } else {

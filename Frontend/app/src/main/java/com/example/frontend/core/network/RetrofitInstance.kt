@@ -1,5 +1,7 @@
 package com.example.frontend.core.network
 
+
+import com.example.frontend.api.FestivalApiService
 import com.example.frontend.api.JeuApiService
 import com.example.frontend.api.MetadataApiService
 import com.example.frontend.api.auth.AuthApiService
@@ -44,6 +46,10 @@ object RetrofitInstance {
     val authApi: AuthApiService by lazy {
         retrofit.create(AuthApiService::class.java)
     }
+
+
+    val festivalApi: FestivalApiService by lazy {
+        retrofit.create(FestivalApiService::class.java)
 
     val jeuApi: JeuApiService by lazy {
         retrofit.create(JeuApiService::class.java)

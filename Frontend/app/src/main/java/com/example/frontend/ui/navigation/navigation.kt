@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateListOf
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -14,12 +19,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.example.frontend.ui.components.AppTopBar
 import com.example.frontend.ui.components.BottomNavBar
 import com.example.frontend.ui.screens.auth.LoginScreen
 import com.example.frontend.ui.screens.auth.RegisterScreen
+import com.example.frontend.ui.screens.festivals.FestivalListScreen
+import com.example.frontend.ui.screens.festivals.FestivalListViewModel
+import com.example.frontend.ui.screens.festivals.FestivalFormScreen
 import com.example.frontend.ui.screens.home.HomeScreen
 import com.example.frontend.ui.screens.jeux.JeuDetailScreen
 import com.example.frontend.ui.screens.jeux.JeuFormScreen
@@ -37,6 +46,9 @@ private val bottomNavDestinations = setOf(
 fun AppNavGraph() {
 
     val backStack = remember { mutableStateListOf<Any>(Login) }
+
+    val festivalListViewModel: FestivalListViewModel = viewModel()
+
     var jeuListReloadKey by remember { mutableIntStateOf(0) }
 
     val currentDestination = backStack.lastOrNull()
@@ -136,6 +148,30 @@ fun AppNavGraph() {
                     )
                 }
 
+            // ── Home ──────────────────────────────────────
+            entry<Home> {
+                HomeScreen(
+                    onGoToFestivals = { backStack.add(Festivals) }
+                )
+            }
+
+            // ── Festivals ─────────────────────────────────
+            entry<Festivals> {
+                FestivalListScreen(
+                    onFestivalClick = { },
+                    onAddFestival = { backStack.add(FestivalForm()) },
+                    onEditFestival = { id -> backStack.add(FestivalForm(festivalId = id)) },
+                    viewModel = festivalListViewModel
+                )
+            }
+            entry<FestivalForm> {
+                FestivalFormScreen(
+                    festivalId = it.festivalId,
+                    onBack = {
+                        backStack.removeLastOrNull()
+                        festivalListViewModel.load()
+                    }
+                )
                 // ── Éditeurs ──────────────────────────────────
                 entry<EditeurList> {
                     Column(modifier = Modifier.fillMaxSize()) {
