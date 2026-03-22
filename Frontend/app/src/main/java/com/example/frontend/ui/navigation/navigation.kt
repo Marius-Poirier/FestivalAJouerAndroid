@@ -7,11 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateListOf
-import androidx.lifecycle.viewmodel.compose.viewModel
-
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -19,7 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.example.frontend.ui.components.AppTopBar
@@ -36,7 +31,7 @@ import com.example.frontend.ui.screens.jeux.JeuListScreen
 
 // Destinations qui affichent la BottomNavBar
 private val bottomNavDestinations = setOf(
-    FestivalList::class,
+    Festivals::class,
     JeuList::class,
     EditeurList::class,
     Workflow::class
@@ -101,22 +96,29 @@ fun AppNavGraph() {
                 entry<Home> {
                     HomeScreen(
                         onGoToApp = {
-                            backStack.add(FestivalList)
+                            backStack.add(Festivals)
                         }
                     )
                 }
 
                 // ── Festivals ─────────────────────────────────
-                entry<FestivalList> {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        AppTopBar(title = "Festivals")
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("À venir")
+                entry<Festivals> {
+                    FestivalListScreen(
+                        onFestivalClick = { },
+                        onAddFestival = { backStack.add(FestivalForm()) },
+                        onEditFestival = { id -> backStack.add(FestivalForm(festivalId = id)) },
+                        viewModel = festivalListViewModel
+                    )
+                }
+
+                entry<FestivalForm> { dest ->
+                    FestivalFormScreen(
+                        festivalId = dest.festivalId,
+                        onBack = {
+                            backStack.removeLastOrNull()
+                            festivalListViewModel.load()
                         }
-                    }
+                    )
                 }
 
                 // ── Jeux ──────────────────────────────────────
@@ -148,30 +150,6 @@ fun AppNavGraph() {
                     )
                 }
 
-            // ── Home ──────────────────────────────────────
-            entry<Home> {
-                HomeScreen(
-                    onGoToFestivals = { backStack.add(Festivals) }
-                )
-            }
-
-            // ── Festivals ─────────────────────────────────
-            entry<Festivals> {
-                FestivalListScreen(
-                    onFestivalClick = { },
-                    onAddFestival = { backStack.add(FestivalForm()) },
-                    onEditFestival = { id -> backStack.add(FestivalForm(festivalId = id)) },
-                    viewModel = festivalListViewModel
-                )
-            }
-            entry<FestivalForm> {
-                FestivalFormScreen(
-                    festivalId = it.festivalId,
-                    onBack = {
-                        backStack.removeLastOrNull()
-                        festivalListViewModel.load()
-                    }
-                )
                 // ── Éditeurs ──────────────────────────────────
                 entry<EditeurList> {
                     Column(modifier = Modifier.fillMaxSize()) {
@@ -202,6 +180,7 @@ fun AppNavGraph() {
                 entry<Admin> {
                     // À implémenter
                 }
+
             }
         )
     }
