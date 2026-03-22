@@ -43,7 +43,9 @@ class AuthManager(
     suspend fun whoami(): Boolean {
         return try {
             val response = apiService.getMe()
-            if (response.isSuccessful) {
+
+            if (response.isSuccessful && response.body() != null) {
+
                 _currentUser.value = response.body()
                 true
             } else {

@@ -1,6 +1,9 @@
 package com.example.frontend.core.network
 
+
 import com.example.frontend.api.FestivalApiService
+import com.example.frontend.api.JeuApiService
+import com.example.frontend.api.MetadataApiService
 import com.example.frontend.api.auth.AuthApiService
 import com.example.frontend.core.auth.AuthManager
 import kotlinx.serialization.json.Json
@@ -44,8 +47,16 @@ object RetrofitInstance {
         retrofit.create(AuthApiService::class.java)
     }
 
+
     val festivalApi: FestivalApiService by lazy {
         retrofit.create(FestivalApiService::class.java)
+
+    val jeuApi: JeuApiService by lazy {
+        retrofit.create(JeuApiService::class.java)
+    }
+
+    val metadataApi: MetadataApiService by lazy {
+        retrofit.create(MetadataApiService::class.java)
     }
 
     val authManager: AuthManager by lazy {
