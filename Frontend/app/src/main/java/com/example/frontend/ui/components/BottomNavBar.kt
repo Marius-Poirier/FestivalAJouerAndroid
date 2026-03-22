@@ -18,7 +18,7 @@ fun BottomNavBar(
     onTabSelected: (Any) -> Unit
 ) {
     NavigationBar(
-        modifier = Modifier.height(64.dp),
+        modifier = Modifier.height(95.dp),
         containerColor = Color.White,
         tonalElevation = 0.dp
     ) {

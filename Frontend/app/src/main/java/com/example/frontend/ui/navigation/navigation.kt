@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -19,6 +20,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.example.frontend.ui.components.AppTopBar
 import com.example.frontend.ui.components.BottomNavBar
+import com.example.frontend.ui.components.LocalOnLogoClick
 import com.example.frontend.ui.screens.auth.LoginScreen
 import com.example.frontend.ui.screens.auth.RegisterScreen
 import com.example.frontend.ui.screens.festivals.FestivalListScreen
@@ -31,6 +33,7 @@ import com.example.frontend.ui.screens.jeux.JeuListScreen
 
 // Destinations qui affichent la BottomNavBar
 private val bottomNavDestinations = setOf(
+    Home :: class,
     Festivals::class,
     JeuList::class,
     EditeurList::class,
@@ -66,122 +69,129 @@ fun AppNavGraph() {
             }
         }
     ) { innerPadding ->
-        NavDisplay(
-            backStack = backStack,
-            onBack = { backStack.removeLastOrNull() },
-            modifier = Modifier.padding(innerPadding),
-            entryProvider = entryProvider {
-
-                // ── Auth ──────────────────────────────────────
-                entry<Login> {
-                    LoginScreen(
-                        onLoginSuccess = {
-                            backStack.clear()
-                            backStack.add(Home)
-                        },
-                        onGoToRegister = {
-                            backStack.add(Register)
-                        }
-                    )
-                }
-
-                entry<Register> {
-                    RegisterScreen(
-                        onRegisterSuccess = { backStack.removeLastOrNull() },
-                        onBack = { backStack.removeLastOrNull() }
-                    )
-                }
-
-                // ── Home ──────────────────────────────────────
-                entry<Home> {
-                    HomeScreen(
-                        onGoToApp = {
-                            backStack.add(Festivals)
-                        }
-                    )
-                }
-
-                // ── Festivals ─────────────────────────────────
-                entry<Festivals> {
-                    FestivalListScreen(
-                        onFestivalClick = { },
-                        onAddFestival = { backStack.add(FestivalForm()) },
-                        onEditFestival = { id -> backStack.add(FestivalForm(festivalId = id)) },
-                        viewModel = festivalListViewModel
-                    )
-                }
-
-                entry<FestivalForm> { dest ->
-                    FestivalFormScreen(
-                        festivalId = dest.festivalId,
-                        onBack = {
-                            backStack.removeLastOrNull()
-                            festivalListViewModel.load()
-                        }
-                    )
-                }
-
-                // ── Jeux ──────────────────────────────────────
-                entry<JeuList> {
-                    JeuListScreen(
-                        onJeuClick = { id -> backStack.add(JeuDetail(jeuId = id)) },
-                        onAddJeu = { backStack.add(JeuForm()) },
-                        onEditJeu = { id -> backStack.add(JeuForm(jeuId = id)) },
-                        reloadKey = jeuListReloadKey
-                    )
-                }
-
-                entry<JeuDetail> { dest ->
-                    JeuDetailScreen(
-                        jeuId = dest.jeuId,
-                        onBack = { backStack.removeLastOrNull() },
-                        onEdit = { id -> backStack.add(JeuForm(jeuId = id)) }
-                    )
-                }
-
-                entry<JeuForm> { dest ->
-                    JeuFormScreen(
-                        jeuId = if (dest.jeuId == 0) null else dest.jeuId,
-                        onBack = { backStack.removeLastOrNull() },
-                        onSaved = {
-                            jeuListReloadKey++
-                            backStack.removeLastOrNull()
-                        }
-                    )
-                }
-
-                // ── Éditeurs ──────────────────────────────────
-                entry<EditeurList> {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        AppTopBar(title = "Éditeurs")
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("À venir")
-                        }
-                    }
-                }
-
-                // ── Workflow ──────────────────────────────────
-                entry<Workflow> {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        AppTopBar(title = "Workflow")
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("À venir")
-                        }
-                    }
-                }
-
-                // ── Admin ─────────────────────────────────────
-                entry<Admin> {
-                    // À implémenter
-                }
-
+        CompositionLocalProvider(
+            LocalOnLogoClick provides {
+                backStack.clear()
+                backStack.add(Home)
             }
-        )
+        ) {
+            NavDisplay(
+                backStack = backStack,
+                onBack = { backStack.removeLastOrNull() },
+                modifier = Modifier.padding(innerPadding),
+                entryProvider = entryProvider {
+
+                    // ── Auth ──────────────────────────────────────
+                    entry<Login> {
+                        LoginScreen(
+                            onLoginSuccess = {
+                                backStack.clear()
+                                backStack.add(Home)
+                            },
+                            onGoToRegister = {
+                                backStack.add(Register)
+                            }
+                        )
+                    }
+
+                    entry<Register> {
+                        RegisterScreen(
+                            onRegisterSuccess = { backStack.removeLastOrNull() },
+                            onBack = { backStack.removeLastOrNull() }
+                        )
+                    }
+
+                    // ── Home ──────────────────────────────────────
+                    entry<Home> {
+                        HomeScreen(
+                            onGoToApp = {
+                                backStack.add(Festivals)
+                            }
+                        )
+                    }
+
+                    // ── Festivals ─────────────────────────────────
+                    entry<Festivals> {
+                        FestivalListScreen(
+                            onFestivalClick = { },
+                            onAddFestival = { backStack.add(FestivalForm()) },
+                            onEditFestival = { id -> backStack.add(FestivalForm(festivalId = id)) },
+                            viewModel = festivalListViewModel
+                        )
+                    }
+
+                    entry<FestivalForm> { dest ->
+                        FestivalFormScreen(
+                            festivalId = dest.festivalId,
+                            onBack = {
+                                backStack.removeLastOrNull()
+                                festivalListViewModel.load()
+                            }
+                        )
+                    }
+
+                    // ── Jeux ──────────────────────────────────────
+                    entry<JeuList> {
+                        JeuListScreen(
+                            onJeuClick = { id -> backStack.add(JeuDetail(jeuId = id)) },
+                            onAddJeu = { backStack.add(JeuForm()) },
+                            onEditJeu = { id -> backStack.add(JeuForm(jeuId = id)) },
+                            reloadKey = jeuListReloadKey
+                        )
+                    }
+
+                    entry<JeuDetail> { dest ->
+                        JeuDetailScreen(
+                            jeuId = dest.jeuId,
+                            onBack = { backStack.removeLastOrNull() },
+                            onEdit = { id -> backStack.add(JeuForm(jeuId = id)) }
+                        )
+                    }
+
+                    entry<JeuForm> { dest ->
+                        JeuFormScreen(
+                            jeuId = if (dest.jeuId == 0) null else dest.jeuId,
+                            onBack = { backStack.removeLastOrNull() },
+                            onSaved = {
+                                jeuListReloadKey++
+                                backStack.removeLastOrNull()
+                            }
+                        )
+                    }
+
+                    // ── Éditeurs ──────────────────────────────────
+                    entry<EditeurList> {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            AppTopBar(title = "Éditeurs")
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("À venir")
+                            }
+                        }
+                    }
+
+                    // ── Workflow ──────────────────────────────────
+                    entry<Workflow> {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            AppTopBar(title = "Workflow")
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("À venir")
+                            }
+                        }
+                    }
+
+                    // ── Admin ─────────────────────────────────────
+                    entry<Admin> {
+                        // À implémenter
+                    }
+
+                }
+            )
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.example.frontend.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,29 +20,26 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.frontend.R
 import com.example.frontend.core.network.RetrofitInstance
 import com.example.frontend.ui.theme.NavyBlue
 
-/** CompositionLocals permettant à AppTopBar d'afficher le bouton admin
- *  sans modifier la signature de chaque screen. Fournis dans AppNavGraph. */
 val authManager = RetrofitInstance.authManager
 val LocalOnAdminClick = staticCompositionLocalOf<() -> Unit> { {} }
+val LocalOnLogoClick = staticCompositionLocalOf<() -> Unit> { {} }
 
-/**
- * TopBar principale de l'app — fond bleu marine #1A3A5C.
- * Affiche le logo 🎲, le titre "Festival à Jouer" et optionnellement
- * un bouton retour ou une icône d'action.
- */
 @Composable
 fun AppTopBar(
     title: String = "Festival à Jouer",
     showBackButton: Boolean = false,
     onBackClick: (() -> Unit)? = null,
-    actions: @Composable RowScope.() -> Unit = {}
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     val currentUser by authManager.currentUser.collectAsStateWithLifecycle()
     val isAdmin = currentUser != null && authManager.isAdmin
+    val onLogoClick = LocalOnLogoClick.current
+    val onAdminClick = LocalOnAdminClick.current
 
     Box(
         modifier = Modifier
@@ -56,7 +53,7 @@ fun AppTopBar(
                 .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (showBackButton && onBackClick != null) {
+            if (onBackClick != null) {
                 IconButton(onClick = onBackClick) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -69,7 +66,8 @@ fun AppTopBar(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White),
+                        .background(Color.White)
+                        .clickable { onLogoClick() },
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
@@ -85,23 +83,20 @@ fun AppTopBar(
                 text = title,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                fontSize = if (showBackButton) 16.sp else 17.sp,
+                fontSize = if (onBackClick != null) 16.sp else 17.sp,
                 modifier = Modifier.weight(1f)
             )
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(content = actions)
-                if (isAdmin) {
-                    IconButton(
-                        onClick = LocalOnAdminClick.current,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Administration",
-                            tint = Color.White
-                        )
-                    }
+            if (isAdmin) {
+                IconButton(
+                    onClick = onAdminClick,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Administration",
+                        tint = Color.White
+                    )
                 }
             }
         }
