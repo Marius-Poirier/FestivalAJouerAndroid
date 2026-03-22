@@ -43,7 +43,6 @@ fun FestivalFormScreen(
     Column(modifier = Modifier.fillMaxSize().background(AppBackground)) {
         AppTopBar(
             title = if (uiState.isEditMode) "Modifier le festival" else "Nouveau festival",
-            showBackButton = true,
             onBackClick = onBack
         )
 
