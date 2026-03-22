@@ -17,7 +17,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.frontend.ui.components.AppTopBar
 import com.example.frontend.ui.screens.festivals.FestivalFormViewModel
-import com.example.frontend.ui.composants.ErrorMessage
+import com.example.frontend.ui.components.ErrorBanner
 import com.example.frontend.ui.theme.AppBackground
 import com.example.frontend.ui.theme.BrightBlue
 import com.example.frontend.ui.theme.NavyBlue
@@ -53,7 +53,7 @@ fun FestivalFormScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            if (uiState.error != null) ErrorMessage(uiState.error!!)
+            if (uiState.error != null) ErrorBanner(uiState.error!!)
 
             Card(
                 shape = RoundedCornerShape(16.dp),
