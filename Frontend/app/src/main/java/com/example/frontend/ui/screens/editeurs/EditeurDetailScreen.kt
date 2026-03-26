@@ -36,6 +36,7 @@ fun EditeurDetailScreen(
     onEdit: (Int) -> Unit,
     onJeuClick: (Int) -> Unit,
     viewModel: EditeurDetailViewModel = viewModel(
+        key = "editeur_detail_$editeurId",
         factory = viewModelFactory { initializer { EditeurDetailViewModel(editeurId) } }
     )
 ) {

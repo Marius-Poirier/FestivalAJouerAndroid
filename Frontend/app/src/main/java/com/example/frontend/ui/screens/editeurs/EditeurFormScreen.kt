@@ -98,6 +98,7 @@ fun EditeurFormScreen(
     editeurId: Int? = null,
     onBack: () -> Unit,
     viewModel: EditeurFormViewModel = viewModel(
+        key = "editeur_form_$editeurId",
         factory = viewModelFactory { initializer { EditeurFormViewModel(editeurId) } }
     )
 ) {
