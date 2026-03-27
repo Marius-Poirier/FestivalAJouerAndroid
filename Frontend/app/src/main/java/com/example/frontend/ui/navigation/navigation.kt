@@ -30,6 +30,9 @@ import com.example.frontend.ui.screens.home.HomeScreen
 import com.example.frontend.ui.screens.jeux.JeuDetailScreen
 import com.example.frontend.ui.screens.jeux.JeuFormScreen
 import com.example.frontend.ui.screens.jeux.JeuListScreen
+import com.example.frontend.ui.screens.editeurs.EditeurDetailScreen
+import com.example.frontend.ui.screens.editeurs.EditeurFormScreen
+import com.example.frontend.ui.screens.editeurs.EditeurListScreen
 
 // Destinations qui affichent la BottomNavBar
 private val bottomNavDestinations = setOf(
@@ -161,15 +164,26 @@ fun AppNavGraph() {
 
                     // ── Éditeurs ──────────────────────────────────
                     entry<EditeurList> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            AppTopBar(title = "Éditeurs")
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("À venir")
-                            }
-                        }
+                        EditeurListScreen(
+                            onEditeurClick = { id -> backStack.add(EditeurDetail(editeurId = id)) },
+                            onAddEditeur = { backStack.add(EditeurForm()) }
+                        )
+                    }
+
+                    entry<EditeurDetail> { dest ->
+                        EditeurDetailScreen(
+                            editeurId = dest.editeurId,
+                            onBack = { backStack.removeLastOrNull() },
+                            onEdit = { id -> backStack.add(EditeurForm(editeurId = id)) },
+                            onJeuClick = { id -> backStack.add(JeuDetail(jeuId = id)) }
+                        )
+                    }
+
+                    entry<EditeurForm> { dest ->
+                        EditeurFormScreen(
+                            editeurId = if (dest.editeurId == 0) null else dest.editeurId,
+                            onBack = { backStack.removeLastOrNull() }
+                        )
                     }
 
                     // ── Workflow ──────────────────────────────────
