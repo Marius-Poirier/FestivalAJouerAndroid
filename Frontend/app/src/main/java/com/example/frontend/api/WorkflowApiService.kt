@@ -14,6 +14,12 @@ interface WorkflowApiService {
     @GET("reservations")
     suspend fun getReservations(@Query("festivalId") festivalId: Int): List<ReservationDto>
 
+    @POST("reservations")
+    suspend fun createReservation(@Body request: CreateReservationRequest): Response<Unit>
+
+    @PUT("reservations/{id}")
+    suspend fun updateReservation(@Path("id") id: Int, @Body request: CreateReservationRequest): Response<Unit>
+
     @DELETE("reservations/{id}")
     suspend fun deleteReservation(@Path("id") id: Int): Response<Unit>
 

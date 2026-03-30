@@ -34,6 +34,7 @@ import com.example.frontend.ui.screens.jeux.JeuListScreen
 import com.example.frontend.ui.screens.editeurs.EditeurDetailScreen
 import com.example.frontend.ui.screens.editeurs.EditeurFormScreen
 import com.example.frontend.ui.screens.editeurs.EditeurListScreen
+import com.example.frontend.ui.screens.workflow.ReservationFormScreen
 import com.example.frontend.ui.screens.workflow.WorkflowScreen
 
 // Destinations qui affichent la BottomNavBar
@@ -201,17 +202,11 @@ fun AppNavGraph() {
                     }
 
                     entry<ReservationForm> { dest ->
-                        // ReservationFormScreen à implémenter
-                        Column(modifier = Modifier.fillMaxSize().background(com.example.frontend.ui.theme.AppBackground)) {
-                            AppTopBar(
-                                title = if (dest.reservationId == 0) "Nouvelle réservation" else "Modifier la réservation",
-                                showBackButton = true,
-                                onBackClick = { backStack.removeLastOrNull() }
-                            )
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("À implémenter")
-                            }
-                        }
+                        ReservationFormScreen(
+                            reservationId = if (dest.reservationId == 0) null else dest.reservationId,
+                            festivalId = dest.festivalId,
+                            onBack = { backStack.removeLastOrNull() }
+                        )
                     }
 
                     // ── Admin ─────────────────────────────────────

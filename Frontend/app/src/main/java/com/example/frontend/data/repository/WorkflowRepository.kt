@@ -10,6 +10,10 @@ class WorkflowRepository(private val api: WorkflowApiService) {
     suspend fun getReservations(festivalId: Int): List<ReservationDto> =
         api.getReservations(festivalId)
 
+    suspend fun createReservation(request: CreateReservationRequest) = api.createReservation(request)
+
+    suspend fun updateReservation(id: Int, request: CreateReservationRequest) = api.updateReservation(id, request)
+
     suspend fun deleteReservation(id: Int) = api.deleteReservation(id)
 
     suspend fun getJeuFestivalView(festivalId: Int, reservationId: Int? = null): List<JeuFestivalViewDto> =

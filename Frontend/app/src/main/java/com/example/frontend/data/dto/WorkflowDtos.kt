@@ -18,10 +18,10 @@ enum class StatutWorkflow(val label: String) {
 
 @Serializable
 enum class StatutTable {
-    @SerialName("LIBRE") LIBRE,
-    @SerialName("RESERVE") RESERVE,
-    @SerialName("PLEIN") PLEIN,
-    @SerialName("HORS_SERVICE") HORS_SERVICE
+    @SerialName("libre") LIBRE,
+    @SerialName("reserve") RESERVE,
+    @SerialName("plein") PLEIN,
+    @SerialName("hors_service") HORS_SERVICE
 }
 
 @Serializable
@@ -157,4 +157,17 @@ data class AddJeuFestivalRequest(
     @SerialName("dans_liste_demandee") val dansListeDemandee: Boolean,
     @SerialName("dans_liste_obtenue") val dansListeObtenue: Boolean,
     @SerialName("jeux_recu") val jeuxRecu: Boolean
+)
+
+@Serializable
+data class CreateReservationRequest(
+    @SerialName("editeur_id") val editeurId: Int,
+    @SerialName("festival_id") val festivalId: Int,
+    @SerialName("statut_workflow") val statutWorkflow: StatutWorkflow? = null,
+    @SerialName("editeur_presente_jeux") val editeurPresenteJeux: Boolean,
+    @SerialName("paiement_relance") val paiementRelance: Boolean,
+    @SerialName("remise_pourcentage") val remisePourcentage: Double? = null,
+    @SerialName("commentaires_paiement") val commentairesPaiement: String? = null,
+    @SerialName("date_facture") val dateFacture: String? = null,
+    @SerialName("date_paiement") val datePaiement: String? = null
 )
