@@ -26,6 +26,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class FestivalForm(val festivalId: Int? = null)
 @Serializable data class EditeurDetail(val editeurId: Int)
 @Serializable data class EditeurForm(val editeurId: Int = 0) // 0 = création
+@Serializable data class ReservationForm(val reservationId: Int = 0, val festivalId: Int) // 0 = création
 
 enum class BottomNavDestination(
     val route: Any,

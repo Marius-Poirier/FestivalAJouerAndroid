@@ -5,6 +5,7 @@ import com.example.frontend.api.EditeurApiService
 import com.example.frontend.api.FestivalApiService
 import com.example.frontend.api.JeuApiService
 import com.example.frontend.api.MetadataApiService
+import com.example.frontend.api.WorkflowApiService
 import com.example.frontend.api.auth.AuthApiService
 import com.example.frontend.core.auth.AuthManager
 import kotlinx.serialization.json.Json
@@ -63,6 +64,10 @@ object RetrofitInstance {
 
     val editeurApi: EditeurApiService by lazy {
         retrofit.create(EditeurApiService::class.java)
+    }
+
+    val workflowApi: WorkflowApiService by lazy {
+        retrofit.create(WorkflowApiService::class.java)
     }
 
     val authManager: AuthManager by lazy {

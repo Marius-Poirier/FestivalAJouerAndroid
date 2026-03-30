@@ -1,5 +1,6 @@
 package com.example.frontend.ui.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +34,7 @@ import com.example.frontend.ui.screens.jeux.JeuListScreen
 import com.example.frontend.ui.screens.editeurs.EditeurDetailScreen
 import com.example.frontend.ui.screens.editeurs.EditeurFormScreen
 import com.example.frontend.ui.screens.editeurs.EditeurListScreen
+import com.example.frontend.ui.screens.workflow.WorkflowScreen
 
 // Destinations qui affichent la BottomNavBar
 private val bottomNavDestinations = setOf(
@@ -188,13 +190,26 @@ fun AppNavGraph() {
 
                     // ── Workflow ──────────────────────────────────
                     entry<Workflow> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            AppTopBar(title = "Workflow")
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("À venir")
+                        WorkflowScreen(
+                            onEditReservation = { resaId, festivalId ->
+                                backStack.add(ReservationForm(reservationId = resaId, festivalId = festivalId))
+                            },
+                            onCreateReservation = { festivalId ->
+                                backStack.add(ReservationForm(festivalId = festivalId))
+                            }
+                        )
+                    }
+
+                    entry<ReservationForm> { dest ->
+                        // ReservationFormScreen à implémenter
+                        Column(modifier = Modifier.fillMaxSize().background(com.example.frontend.ui.theme.AppBackground)) {
+                            AppTopBar(
+                                title = if (dest.reservationId == 0) "Nouvelle réservation" else "Modifier la réservation",
+                                showBackButton = true,
+                                onBackClick = { backStack.removeLastOrNull() }
+                            )
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("À implémenter")
                             }
                         }
                     }
