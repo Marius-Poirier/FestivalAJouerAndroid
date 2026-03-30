@@ -50,9 +50,9 @@ data class ZoneDuPlanDto(
 @Serializable
 data class TableJeuDto(
     val id: Int? = null,
-    @SerialName("zone_du_plan_id") val zoneDuPlanId: Int,
-    @SerialName("zone_tarifaire_id") val zoneTarifaireId: Int,
-    @SerialName("capacite_jeux") val capaciteJeux: Int,
+    @SerialName("zone_du_plan_id") val zoneDuPlanId: Int? = null,
+    @SerialName("zone_tarifaire_id") val zoneTarifaireId: Int? = null,
+    @SerialName("capacite_jeux") val capaciteJeux: Int? = null,
     @SerialName("nb_jeux_actuels") val nbJeuxActuels: Int? = null,
     val statut: StatutTable? = null,
     @SerialName("created_at") val createdAt: String? = null,

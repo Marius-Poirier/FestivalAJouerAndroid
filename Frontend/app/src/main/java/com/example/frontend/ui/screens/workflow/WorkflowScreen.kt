@@ -762,7 +762,7 @@ private fun TableRow(
     onRemoveJeu: (Int) -> Unit
 ) {
     val isFull = table.statut == StatutTable.PLEIN ||
-        (table.nbJeuxActuels != null && table.nbJeuxActuels >= table.capaciteJeux)
+        (table.nbJeuxActuels != null && table.capaciteJeux != null && table.nbJeuxActuels >= table.capaciteJeux)
 
     Column(
         modifier = Modifier
@@ -786,7 +786,7 @@ private fun TableRow(
                 modifier = Modifier.width(80.dp)
             )
             Text(
-                "${table.nbJeuxActuels ?: 0}/${table.capaciteJeux}",
+                "${table.nbJeuxActuels ?: 0}/${table.capaciteJeux ?: "?"}",
                 fontSize = 11.sp, color = TextMuted, modifier = Modifier.width(50.dp)
             )
             StatutTableBadge(table.statut)
@@ -1363,7 +1363,7 @@ private fun AddResaTableDialog(
                         Text("Aucune table libre dans cette zone", fontSize = 12.sp, color = TextMuted)
                     } else {
                         LazyColumn(modifier = Modifier.heightIn(max = 200.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            items(tables, key = { it.id ?: it.zoneDuPlanId }) { table ->
+                            items(tables, key = { it.id ?: it.zoneDuPlanId ?: 0 }) { table ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth().clickable { table.id?.let(onAddTable) }
                                         .clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F4F8))
@@ -1371,7 +1371,7 @@ private fun AddResaTableDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("Table #${table.id}", fontSize = 13.sp, color = NavyBlue, modifier = Modifier.weight(1f))
-                                    Text("${table.nbJeuxActuels ?: 0}/${table.capaciteJeux}", fontSize = 11.sp, color = TextMuted)
+                                    Text("${table.nbJeuxActuels ?: 0}/${table.capaciteJeux ?: "?"}", fontSize = 11.sp, color = TextMuted)
                                 }
                             }
                         }

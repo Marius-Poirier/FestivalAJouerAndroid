@@ -384,6 +384,19 @@ class WorkflowViewModel : ViewModel() {
 
     fun onReservationStatutFilterChange(s: StatutWorkflow?) = update { copy(selectedReservationStatut = s) }
 
+    fun loadReservations() {
+        val festivalId = _uiState.value.selectedFestivalId ?: return
+        viewModelScope.launch {
+            try {
+                val reservations = repo.getReservations(festivalId)
+                val reservationByEditeur = reservations.filter { it.id != null }.associateBy { it.editeurId }
+                update { copy(reservations = reservations, reservationByEditeur = reservationByEditeur) }
+            } catch (e: Exception) {
+                update { copy(error = e.message) }
+            }
+        }
+    }
+
     fun deleteReservation(id: Int) {
         val festivalId = _uiState.value.selectedFestivalId ?: return
         viewModelScope.launch {

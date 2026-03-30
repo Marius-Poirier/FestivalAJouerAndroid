@@ -26,6 +26,7 @@ import com.example.frontend.ui.screens.auth.LoginScreen
 import com.example.frontend.ui.screens.auth.RegisterScreen
 import com.example.frontend.ui.screens.festivals.FestivalListScreen
 import com.example.frontend.ui.screens.festivals.FestivalListViewModel
+import com.example.frontend.ui.screens.workflow.WorkflowViewModel
 import com.example.frontend.ui.screens.festivals.FestivalFormScreen
 import com.example.frontend.ui.screens.home.HomeScreen
 import com.example.frontend.ui.screens.jeux.JeuDetailScreen
@@ -191,21 +192,28 @@ fun AppNavGraph() {
 
                     // ── Workflow ──────────────────────────────────
                     entry<Workflow> {
+                        val workflowViewModel: WorkflowViewModel = viewModel()
                         WorkflowScreen(
                             onEditReservation = { resaId, festivalId ->
                                 backStack.add(ReservationForm(reservationId = resaId, festivalId = festivalId))
                             },
                             onCreateReservation = { festivalId ->
                                 backStack.add(ReservationForm(festivalId = festivalId))
-                            }
+                            },
+                            viewModel = workflowViewModel
                         )
                     }
 
                     entry<ReservationForm> { dest ->
+                        // On récupère le ViewModel existant s'il existe (celui du workflow parent)
+                        val workflowViewModel: WorkflowViewModel = viewModel()
                         ReservationFormScreen(
                             reservationId = if (dest.reservationId == 0) null else dest.reservationId,
                             festivalId = dest.festivalId,
-                            onBack = { backStack.removeLastOrNull() }
+                            onBack = {
+                                workflowViewModel.loadReservations()
+                                backStack.removeLastOrNull()
+                            }
                         )
                     }
 
