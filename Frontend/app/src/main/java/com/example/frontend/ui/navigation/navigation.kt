@@ -20,6 +20,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.example.frontend.ui.components.AppTopBar
 import com.example.frontend.ui.components.BottomNavBar
+import com.example.frontend.ui.components.LocalOnAdminClick
 import com.example.frontend.ui.components.LocalOnLogoClick
 import com.example.frontend.ui.screens.auth.LoginScreen
 import com.example.frontend.ui.screens.auth.RegisterScreen
@@ -33,6 +34,7 @@ import com.example.frontend.ui.screens.jeux.JeuListScreen
 import com.example.frontend.ui.screens.editeurs.EditeurDetailScreen
 import com.example.frontend.ui.screens.editeurs.EditeurFormScreen
 import com.example.frontend.ui.screens.editeurs.EditeurListScreen
+import com.example.frontend.ui.screens.admin.AdminScreen
 
 // Destinations qui affichent la BottomNavBar
 private val bottomNavDestinations = setOf(
@@ -76,6 +78,11 @@ fun AppNavGraph() {
             LocalOnLogoClick provides {
                 backStack.clear()
                 backStack.add(Home)
+            },
+            LocalOnAdminClick provides {
+                if (currentDestination?.let { it::class != Admin::class } != false) {
+                    backStack.add(Admin)
+                }
             }
         ) {
             NavDisplay(
@@ -201,7 +208,9 @@ fun AppNavGraph() {
 
                     // ── Admin ─────────────────────────────────────
                     entry<Admin> {
-                        // À implémenter
+                        AdminScreen(
+                            onBack = { backStack.removeLastOrNull() }
+                        )
                     }
 
                 }
