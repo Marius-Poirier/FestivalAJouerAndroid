@@ -1,6 +1,5 @@
 package com.example.frontend.data.dto
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -11,24 +10,34 @@ data class AdminUserDto(
     val id: Int,
     val email: String,
     val role: String,
-    val statut: String? = null,
-    @SerialName("date_demande") val dateDemande: String? = null,
-    @SerialName("email_bloque") val emailBloque: Boolean? = null,
-    @SerialName("created_at") val createdAt: String? = null
+    val statut: String,               // ex: "en_attente", "valide", "refuse"
+    val date_demande: String? = null,
+    val email_bloque: Boolean = false,
+    val created_at: String? = null
 )
 
 /**
- * Corps de la requête PATCH /users/{id}/status
+ * Corps de la requête PATCH /users/{id}/validate
  */
 @Serializable
-data class UpdateStatusRequest(
-    val statut: String
-)
-
-/**
- * Corps de la requête PATCH /users/{id}/role
- */
-@Serializable
-data class UpdateRoleRequest(
+data class ValidateUserRequest(
     val role: String
 )
+
+/**
+ * Corps de la requête PATCH /users/{id}/block
+ */
+@Serializable
+data class BlockUserRequest(
+    val blocked: Boolean
+)
+
+/**
+ * Réponse des endpoints PATCH (validate, reject, block)
+ */
+@Serializable
+data class AdminActionResponse(
+    val message: String,
+    val user: AdminUserDto
+)
+

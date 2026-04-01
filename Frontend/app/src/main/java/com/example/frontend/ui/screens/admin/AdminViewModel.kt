@@ -41,7 +41,9 @@ class AdminViewModel : ViewModel() {
     fun acceptUser(userId: Int) {
         viewModelScope.launch {
             try {
-                val response = repository.updateUserStatus(userId, "valide")
+                // Par défaut on valide en tant que bénévole, 
+                // on pourrait le rendre dynamique si l'UI le permettait.
+                val response = repository.validateUser(userId, "benevole")
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(actionSuccess = "Utilisateur accepté")
                     load()
@@ -57,9 +59,17 @@ class AdminViewModel : ViewModel() {
     fun banUser(userId: Int) {
         viewModelScope.launch {
             try {
-                val response = repository.updateUserStatus(userId, "banni")
+                val user = _uiState.value.users.find { it.id == userId }
+                if (user == null) return@launch
+                
+                val response = if (user.statut == "en_attente") {
+                    repository.rejectUser(userId)
+                } else {
+                    repository.blockUser(userId, true)
+                }
+                
                 if (response.isSuccessful) {
-                    _uiState.value = _uiState.value.copy(actionSuccess = "Utilisateur banni")
+                    _uiState.value = _uiState.value.copy(actionSuccess = "Utilisateur banni/refusé")
                     load()
                 } else {
                     _uiState.value = _uiState.value.copy(error = "Erreur lors du bannissement")
@@ -73,7 +83,7 @@ class AdminViewModel : ViewModel() {
     fun unbanUser(userId: Int) {
         viewModelScope.launch {
             try {
-                val response = repository.updateUserStatus(userId, "valide")
+                val response = repository.blockUser(userId, false)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(actionSuccess = "Utilisateur débanni")
                     load()
@@ -87,25 +97,8 @@ class AdminViewModel : ViewModel() {
     }
 
     fun changeRole(userId: Int, newRole: RoleUtilisateur) {
-        viewModelScope.launch {
-            try {
-                val roleString = when (newRole) {
-                    RoleUtilisateur.ADMIN -> "admin"
-                    RoleUtilisateur.SUPER_ORGANISATEUR -> "super_organisateur"
-                    RoleUtilisateur.ORGANISATEUR -> "organisateur"
-                    RoleUtilisateur.BENEVOLE -> "benevole"
-                }
-                val response = repository.updateUserRole(userId, roleString)
-                if (response.isSuccessful) {
-                    _uiState.value = _uiState.value.copy(actionSuccess = "Rôle modifié")
-                    load()
-                } else {
-                    _uiState.value = _uiState.value.copy(error = "Erreur lors du changement de rôle")
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message)
-            }
-        }
+        // Feature non supportée par le backend actuellement pour les utilisateurs déjà validés.
+        _uiState.value = _uiState.value.copy(error = "Modification de rôle non supportée par le serveur actuel")
     }
 
     fun clearActionSuccess() {

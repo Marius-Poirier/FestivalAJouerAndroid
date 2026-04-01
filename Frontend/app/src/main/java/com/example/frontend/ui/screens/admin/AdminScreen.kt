@@ -120,10 +120,10 @@ fun AdminScreen(
                     it.statut.equals("en_attente", ignoreCase = true)
                 }
                 val banned = uiState.users.count {
-                    it.statut.equals("banni", ignoreCase = true)
+                    it.statut.equals("refuse", ignoreCase = true) || it.email_bloque
                 }
                 val active = uiState.users.count {
-                    it.statut.equals("valide", ignoreCase = true)
+                    it.statut.equals("valide", ignoreCase = true) && !it.email_bloque
                 }
 
                 Row(
@@ -212,8 +212,8 @@ private fun UserCard(
     onChangeRole: (RoleUtilisateur) -> Unit
 ) {
     val isPending = user.statut.equals("en_attente", ignoreCase = true)
-    val isBanned = user.statut.equals("banni", ignoreCase = true)
-    val isActive = user.statut.equals("valide", ignoreCase = true)
+    val isBanned = user.statut.equals("refuse", ignoreCase = true) || user.email_bloque
+    val isActive = user.statut.equals("valide", ignoreCase = true) && !user.email_bloque
 
     var showRoleMenu by remember { mutableStateOf(false) }
 
@@ -275,7 +275,7 @@ private fun UserCard(
                 }
 
                 // Badge statut
-                StatusBadge(statut = user.statut)
+                StatusBadge(statut = user.statut, email_bloque = user.email_bloque)
             }
 
             Spacer(Modifier.height(10.dp))
@@ -287,7 +287,7 @@ private fun UserCard(
             ) {
                 RoleBadge(role = user.role)
 
-                if (user.createdAt != null) {
+                if (user.created_at != null) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
@@ -295,7 +295,7 @@ private fun UserCard(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            "📅 ${formatAdminDate(user.createdAt)}",
+                            "📅 ${formatAdminDate(user.created_at)}",
                             fontSize = 10.sp,
                             color = TextMuted
                         )
@@ -438,13 +438,13 @@ private fun UserCard(
 // ── Composants utilitaires ───────────────────────────
 
 @Composable
-private fun StatusBadge(statut: String?) {
+private fun StatusBadge(statut: String?, email_bloque: Boolean) {
     val (bg, text, label) = when {
         statut.equals("en_attente", ignoreCase = true) ->
             Triple(StatusPendingBg, StatusPending, "En attente")
-        statut.equals("banni", ignoreCase = true) ->
+        statut.equals("refuse", ignoreCase = true) || email_bloque ->
             Triple(StatusBannedBg, StatusBanned, "Banni")
-        statut.equals("valide", ignoreCase = true) ->
+        statut.equals("valide", ignoreCase = true) && !email_bloque ->
             Triple(StatusActiveBg, StatusActive, "Actif")
         else ->
             Triple(CardSecondary, TextMuted, statut ?: "Inconnu")
