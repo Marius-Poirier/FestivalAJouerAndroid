@@ -190,10 +190,9 @@ fun AdminScreen(
                     items(uiState.users, key = { it.id }) { user ->
                         UserCard(
                             user = user,
-                            onAccept = { viewModel.acceptUser(user.id) },
+                            onAccept = { role -> viewModel.acceptUser(user.id, role) },
                             onBan = { viewModel.banUser(user.id) },
-                            onUnban = { viewModel.unbanUser(user.id) },
-                            onChangeRole = { role -> viewModel.changeRole(user.id, role) }
+                            onUnban = { viewModel.unbanUser(user.id) }
                         )
                     }
                 }
@@ -206,16 +205,75 @@ fun AdminScreen(
 @Composable
 private fun UserCard(
     user: AdminUserDto,
-    onAccept: () -> Unit,
+    onAccept: (RoleUtilisateur) -> Unit,
     onBan: () -> Unit,
-    onUnban: () -> Unit,
-    onChangeRole: (RoleUtilisateur) -> Unit
+    onUnban: () -> Unit
 ) {
     val isPending = user.statut.equals("en_attente", ignoreCase = true)
     val isBanned = user.statut.equals("refuse", ignoreCase = true) || user.email_bloque
     val isActive = user.statut.equals("valide", ignoreCase = true) && !user.email_bloque
 
-    var showRoleMenu by remember { mutableStateOf(false) }
+    var showAcceptDialog by remember { mutableStateOf(false) }
+    var selectedRoleToAccept by remember { mutableStateOf(RoleUtilisateur.BENEVOLE) }
+
+    if (showAcceptDialog) {
+        AlertDialog(
+            onDismissRequest = { showAcceptDialog = false },
+            title = {
+                Text(
+                    "Accepter l'utilisateur",
+                    fontWeight = FontWeight.Bold,
+                    color = NavyBlue
+                )
+            },
+            text = {
+                Column {
+                    Text("Sélectionnez le rôle à attribuer :", fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    RoleUtilisateur.entries.forEach { role ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            RadioButton(
+                                selected = role == selectedRoleToAccept,
+                                onClick = { selectedRoleToAccept = role },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = BrightBlue,
+                                    unselectedColor = CardSecondary
+                                )
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = roleDisplayName(role),
+                                fontSize = 14.sp,
+                                color = if (role == selectedRoleToAccept) BrightBlue else NavyBlue
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showAcceptDialog = false
+                        onAccept(selectedRoleToAccept)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusActive)
+                ) {
+                    Text("Valider")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAcceptDialog = false }) {
+                    Text("Annuler", color = TextMuted)
+                }
+            },
+            containerColor = Color.White
+        )
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -313,8 +371,10 @@ private fun UserCard(
                 // Accepter (seulement si en attente)
                 if (isPending) {
                     Button(
-                        onClick = onAccept,
-                        modifier = Modifier.weight(1f).height(36.dp),
+                        onClick = { showAcceptDialog = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = StatusActive,
                             contentColor = Color.White
@@ -336,7 +396,9 @@ private fun UserCard(
                 if (isBanned) {
                     OutlinedButton(
                         onClick = onUnban,
-                        modifier = Modifier.weight(1f).height(36.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = StatusActive
                         ),
@@ -355,7 +417,9 @@ private fun UserCard(
                 } else {
                     OutlinedButton(
                         onClick = onBan,
-                        modifier = Modifier.weight(1f).height(36.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Destructive
                         ),
@@ -370,64 +434,6 @@ private fun UserCard(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text("Bannir", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                // Changer rôle
-                Box {
-                    OutlinedButton(
-                        onClick = { showRoleMenu = true },
-                        modifier = Modifier.height(36.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = RoleBadgeText
-                        ),
-                        border = ButtonDefaults.outlinedButtonBorder(enabled = true),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Shield,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text("Rôle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    DropdownMenu(
-                        expanded = showRoleMenu,
-                        onDismissRequest = { showRoleMenu = false },
-                        containerColor = Color.White,
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        RoleUtilisateur.entries.forEach { role ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        roleDisplayName(role),
-                                        fontSize = 13.sp,
-                                        fontWeight = if (user.role.equals(role.name, ignoreCase = true))
-                                            FontWeight.Bold else FontWeight.Normal,
-                                        color = if (user.role.equals(role.name, ignoreCase = true))
-                                            BrightBlue else NavyBlue
-                                    )
-                                },
-                                onClick = {
-                                    showRoleMenu = false
-                                    onChangeRole(role)
-                                },
-                                leadingIcon = {
-                                    if (user.role.equals(role.name, ignoreCase = true)) {
-                                        Icon(
-                                            Icons.Default.CheckCircle,
-                                            contentDescription = null,
-                                            tint = BrightBlue,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-                            )
-                        }
                     }
                 }
             }

@@ -38,12 +38,16 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    fun acceptUser(userId: Int) {
+    fun acceptUser(userId: Int, role: RoleUtilisateur) {
+        val roleString = when (role) {
+            RoleUtilisateur.ADMIN -> "admin"
+            RoleUtilisateur.SUPER_ORGANISATEUR -> "super_organisateur"
+            RoleUtilisateur.ORGANISATEUR -> "organisateur"
+            RoleUtilisateur.BENEVOLE -> "benevole"
+        }
         viewModelScope.launch {
             try {
-                // Par défaut on valide en tant que bénévole, 
-                // on pourrait le rendre dynamique si l'UI le permettait.
-                val response = repository.validateUser(userId, "benevole")
+                val response = repository.validateUser(userId, roleString)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(actionSuccess = "Utilisateur accepté")
                     load()
@@ -94,11 +98,6 @@ class AdminViewModel : ViewModel() {
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
-    }
-
-    fun changeRole(userId: Int, newRole: RoleUtilisateur) {
-        // Feature non supportée par le backend actuellement pour les utilisateurs déjà validés.
-        _uiState.value = _uiState.value.copy(error = "Modification de rôle non supportée par le serveur actuel")
     }
 
     fun clearActionSuccess() {
