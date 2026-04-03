@@ -88,9 +88,12 @@ interface WorkflowApiService {
     @HTTP(method = "DELETE", path = "jeu-festival-tables", hasBody = true)
     suspend fun removeJeuFromTable(@Body request: JeuFestivalTableRequest): Response<Unit>
 
+    @GET("tables/{id}")
+    suspend fun getTableById(@Path("id") id: Int): TableJeuDto
+
     // Tables dans une réservation
     @GET("reservation-tables")
-    suspend fun getReservationTables(@Query("reservationId") reservationId: Int): List<TableJeuDto>
+    suspend fun getReservationTables(@Query("reservationId") reservationId: Int): List<ReservationTableEntryDto>
 
     @POST("reservation-tables")
     suspend fun addTableToReservation(@Body request: ReservationTableRequest): Response<Unit>

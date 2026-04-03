@@ -124,6 +124,8 @@ class ReservationFormViewModel(
     fun onDateFactureChange(v: String) = update { copy(dateFacture = v) }
     fun onDatePaiementChange(v: String) = update { copy(datePaiement = v) }
 
+    fun onNavigated() = update { copy(isSuccess = false) }
+
     fun save() {
         val s = _uiState.value
         val editeurId = s.selectedEditeurId
@@ -172,7 +174,10 @@ fun ReservationFormScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) onBack()
+        if (uiState.isSuccess) {
+            viewModel.onNavigated()
+            onBack()
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().background(AppBackground)) {

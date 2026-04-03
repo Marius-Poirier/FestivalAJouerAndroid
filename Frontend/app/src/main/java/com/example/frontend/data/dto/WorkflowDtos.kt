@@ -114,6 +114,12 @@ data class ReservationDto(
 )
 
 @Serializable
+data class ReservationTableEntryDto(
+    @SerialName("reservation_id") val reservationId: Int,
+    @SerialName("table_id") val tableId: Int
+)
+
+@Serializable
 data class CreateZoneTarifaireRequest(
     @SerialName("festival_id") val festivalId: Int,
     val nom: String,

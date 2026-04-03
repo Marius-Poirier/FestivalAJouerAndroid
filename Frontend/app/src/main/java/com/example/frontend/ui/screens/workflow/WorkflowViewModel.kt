@@ -252,8 +252,27 @@ class WorkflowViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val req = CreateZoneDuPlanRequest(festivalId, nom, nombreTables, zoneTarifaireId)
-                if (editing?.id != null) repo.updateZoneDuPlan(editing.id, req)
-                else repo.createZoneDuPlan(req)
+                if (editing?.id != null) {
+                    repo.updateZoneDuPlan(editing.id, req)
+                    val existing = repo.getTables(editing.id)
+                    val delta = nombreTables - existing.size
+                    if (delta > 0) {
+                        repeat(delta) {
+                            repo.createTable(CreateTableRequest(editing.id, zoneTarifaireId, 2))
+                        }
+                    }
+                    update { copy(tablesByZone = tablesByZone - editing.id) }
+                } else {
+                    repo.createZoneDuPlan(req)
+                    val zones = repo.getZonesDuPlan(festivalId)
+                    val newZone = zones.firstOrNull { it.nom == nom.trim() && it.zoneTarifaireId == zoneTarifaireId }
+                    if (newZone?.id != null) {
+                        repeat(nombreTables) {
+                            repo.createTable(CreateTableRequest(newZone.id, zoneTarifaireId, 2))
+                        }
+                    }
+                    update { copy(zonesDuPlan = zones) }
+                }
                 dismissZonePlanDialog()
                 loadZonesDuPlan(festivalId)
             } catch (e: Exception) {
@@ -579,21 +598,68 @@ class WorkflowViewModel : ViewModel() {
     }
 
     // Dialog: assign jeu to resa table
-    fun showAssignJeuToResaTableDialog(table: TableJeuDto, resaId: Int) = update {
-        copy(showAssignJeuToResaTableDialog = true, resaTableForJeuDialog = table, resaIdForJeuTableDialog = resaId)
+    fun showAssignJeuToResaTableDialog(table: TableJeuDto, resa: ReservationDto) {
+        val resaId = resa.id ?: return
+        update {
+            copy(
+                showAssignJeuToResaTableDialog = true,
+                resaTableForJeuDialog = table,
+                resaIdForJeuTableDialog = resaId,
+                editeurJeuxForDialog = emptyList()
+            )
+        }
+        // Charger tous les jeux de l'éditeur pour ce dialog
+        viewModelScope.launch {
+            try {
+                val jeux = editeurRepo.getJeux(resa.editeurId)
+                update { copy(editeurJeuxForDialog = jeux) }
+            } catch (e: Exception) {
+                update { copy(error = e.message) }
+            }
+        }
+        // Charger les jeux déjà sur la table si pas en cache
+        table.id?.let { tableId ->
+            if (!_uiState.value.resaTableJeux.containsKey(tableId)) loadResaTableJeux(tableId)
+        }
+        // Charger les jeux déjà dans la réservation si pas en cache
+        if (!_uiState.value.reservationJeux.containsKey(resaId)) loadReservationJeux(resaId)
     }
 
     fun dismissAssignJeuToResaTableDialog() = update {
-        copy(showAssignJeuToResaTableDialog = false, resaTableForJeuDialog = null, resaIdForJeuTableDialog = null)
+        copy(
+            showAssignJeuToResaTableDialog = false,
+            resaTableForJeuDialog = null,
+            resaIdForJeuTableDialog = null,
+            editeurJeuxForDialog = emptyList()
+        )
     }
 
-    fun assignJeuToResaTable(jeuFestivalId: Int, tableId: Int) {
+    // jeuId = ID du jeu (JeuDto.id), pas jeuFestivalId
+    fun assignJeuToResaTable(jeuId: Int, tableId: Int) {
+        val resaId = _uiState.value.resaIdForJeuTableDialog ?: return
+        val festivalId = _uiState.value.selectedFestivalId ?: return
         viewModelScope.launch {
             try {
+                // Trouver si le jeu est déjà dans la réservation
+                var jeuFestivalId = (_uiState.value.reservationJeux[resaId] ?: emptyList())
+                    .firstOrNull { it.jeuId == jeuId }?.id
+                if (jeuFestivalId == null) {
+                    // Ajouter le jeu à la réservation en premier
+                    repo.addJeuFestival(AddJeuFestivalRequest(jeuId, resaId, festivalId, false, false, false))
+                    val refreshed = repo.getJeuFestivalView(festivalId, resaId)
+                    update { copy(reservationJeux = reservationJeux + (resaId to refreshed)) }
+                    jeuFestivalId = refreshed.firstOrNull { it.jeuId == jeuId }?.id
+                }
+                if (jeuFestivalId == null) {
+                    update { copy(error = "Impossible de retrouver le jeu dans la réservation") }
+                    return@launch
+                }
                 repo.assignJeuToTable(JeuFestivalTableRequest(jeuFestivalId, tableId))
                 dismissAssignJeuToResaTableDialog()
                 update { copy(resaTableJeux = resaTableJeux - tableId) }
                 loadResaTableJeux(tableId)
+                update { copy(reservationTables = reservationTables - resaId) }
+                loadReservationTables(resaId)
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
@@ -601,11 +667,17 @@ class WorkflowViewModel : ViewModel() {
     }
 
     fun removeJeuFromResaTable(jeuFestivalId: Int, tableId: Int) {
+        val resaId = _uiState.value.reservationTables.entries
+            .firstOrNull { (_, tables) -> tables.any { it.id == tableId } }?.key
         viewModelScope.launch {
             try {
                 repo.removeJeuFromTable(JeuFestivalTableRequest(jeuFestivalId, tableId))
                 update { copy(resaTableJeux = resaTableJeux - tableId) }
                 loadResaTableJeux(tableId)
+                if (resaId != null) {
+                    update { copy(reservationTables = reservationTables - resaId) }
+                    loadReservationTables(resaId)
+                }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }

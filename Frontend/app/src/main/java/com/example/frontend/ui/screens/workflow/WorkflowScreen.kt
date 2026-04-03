@@ -597,26 +597,6 @@ private fun ZoneDuPlanTabContent(
         )
     }
 
-    if (uiState.showAddTableDialog && uiState.addTableForZone != null) {
-        AddTableDialog(
-            onDismiss = viewModel::dismissAddTableDialog,
-            onSave = { capacite -> viewModel.createTable(uiState.addTableForZone, capacite) }
-        )
-    }
-
-    if (uiState.showAssignJeuDialog && uiState.assignJeuForTable != null) {
-        val tableId = uiState.assignJeuForTable.id ?: return
-        val availableJeux = remember(uiState.jeuxFestival, uiState.jeusByTable, tableId) {
-            val alreadyIds = (uiState.jeusByTable[tableId] ?: emptyList()).map { it.id }.toSet()
-            uiState.jeuxFestival.filter { it.id !in alreadyIds }
-        }
-        AssignJeuToTableDialog(
-            jeux = availableJeux,
-            onDismiss = viewModel::dismissAssignJeuDialog,
-            onAssign = { jeuFestivalId -> viewModel.assignJeuToTable(jeuFestivalId, tableId) }
-        )
-    }
-
     Column(modifier = Modifier.fillMaxSize()) {
         if (isAdminSuperorga) {
             Row(
@@ -644,15 +624,10 @@ private fun ZoneDuPlanTabContent(
                         expandedTableIds = uiState.expandedTableIds,
                         jeusByTable = uiState.jeusByTable,
                         canManageZone = isAdminSuperorga,
-                        canManageTables = isOrganisateurPlus,
                         onToggleExpand = { viewModel.toggleZonePlanExpand(zoneId) },
                         onEditZone = { viewModel.showEditZonePlan(zone) },
                         onDeleteZone = { zoneToDelete = zone },
-                        onAddTable = { viewModel.showAddTableDialog(zone) },
-                        onDeleteTable = { tableId -> viewModel.deleteTable(tableId, zoneId) },
-                        onToggleTable = { tableId -> viewModel.toggleTableExpand(tableId) },
-                        onAssignJeu = { table -> viewModel.showAssignJeuDialog(table) },
-                        onRemoveJeu = { jeuFestivalId, tableId -> viewModel.removeJeuFromTable(jeuFestivalId, tableId, zoneId) }
+                        onToggleTable = { tableId -> viewModel.toggleTableExpand(tableId) }
                     )
                 }
             }
@@ -668,15 +643,10 @@ private fun ZoneDuPlanCard(
     expandedTableIds: Set<Int>,
     jeusByTable: Map<Int, List<JeuTableDto>>,
     canManageZone: Boolean,
-    canManageTables: Boolean,
     onToggleExpand: () -> Unit,
     onEditZone: () -> Unit,
     onDeleteZone: () -> Unit,
-    onAddTable: () -> Unit,
-    onDeleteTable: (Int) -> Unit,
-    onToggleTable: (Int) -> Unit,
-    onAssignJeu: (TableJeuDto) -> Unit,
-    onRemoveJeu: (Int, Int) -> Unit
+    onToggleTable: (Int) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -715,13 +685,6 @@ private fun ZoneDuPlanCard(
             if (isExpanded) {
                 HorizontalDivider(color = BorderColor)
                 Column(modifier = Modifier.padding(start = 16.dp, end = 8.dp, bottom = 8.dp)) {
-                    if (canManageZone) {
-                        TextButton(onClick = onAddTable) {
-                            Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Ajouter une table", fontSize = 12.sp)
-                        }
-                    }
                     if (tables == null) {
                         Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -736,11 +699,7 @@ private fun ZoneDuPlanCard(
                                 table = table,
                                 isExpanded = tableExpanded,
                                 jeux = jeusByTable[tableId],
-                                canManage = canManageTables,
-                                onToggle = { onToggleTable(tableId) },
-                                onDelete = { onDeleteTable(tableId) },
-                                onAssignJeu = { onAssignJeu(table) },
-                                onRemoveJeu = { jeuFestivalId -> onRemoveJeu(jeuFestivalId, tableId) }
+                                onToggle = { onToggleTable(tableId) }
                             )
                         }
                     }
@@ -755,15 +714,8 @@ private fun TableRow(
     table: TableJeuDto,
     isExpanded: Boolean,
     jeux: List<JeuTableDto>?,
-    canManage: Boolean,
-    onToggle: () -> Unit,
-    onDelete: () -> Unit,
-    onAssignJeu: () -> Unit,
-    onRemoveJeu: (Int) -> Unit
+    onToggle: () -> Unit
 ) {
-    val isFull = table.statut == StatutTable.PLEIN ||
-        (table.nbJeuxActuels != null && table.capaciteJeux != null && table.nbJeuxActuels >= table.capaciteJeux)
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -790,39 +742,20 @@ private fun TableRow(
                 fontSize = 11.sp, color = TextMuted, modifier = Modifier.width(50.dp)
             )
             StatutTableBadge(table.statut)
-            Spacer(Modifier.weight(1f))
-            if (canManage) {
-                IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Delete, null, tint = Destructive, modifier = Modifier.size(14.dp))
-                }
-            }
         }
 
         if (isExpanded) {
-            if (canManage && !isFull) {
-                TextButton(onClick = onAssignJeu, modifier = Modifier.padding(start = 20.dp)) {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Assigner un jeu", fontSize = 11.sp)
-                }
-            }
             if (jeux == null) {
                 Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                 }
             } else {
                 jeux.forEach { jeu ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(jeu.nom ?: "Jeu #${jeu.id}", fontSize = 11.sp, color = NavyBlue, modifier = Modifier.weight(1f))
-                        if (canManage) {
-                            IconButton(onClick = { onRemoveJeu(jeu.id) }, modifier = Modifier.size(24.dp)) {
-                                Icon(Icons.Default.Remove, null, tint = Destructive, modifier = Modifier.size(14.dp))
-                            }
-                        }
-                    }
+                    Text(
+                        jeu.nom ?: "Jeu #${jeu.id}",
+                        fontSize = 11.sp, color = NavyBlue,
+                        modifier = Modifier.padding(start = 24.dp, end = 4.dp, top = 2.dp, bottom = 2.dp)
+                    )
                 }
             }
         }
@@ -1000,16 +933,20 @@ private fun ReservationsTabContent(
         )
     }
 
-    if (uiState.showAssignJeuToResaTableDialog && uiState.resaTableForJeuDialog != null && uiState.resaIdForJeuTableDialog != null) {
-        val tableId = uiState.resaTableForJeuDialog.id ?: return
-        val resaId = uiState.resaIdForJeuTableDialog
-        val alreadyOnTable = (uiState.resaTableJeux[tableId] ?: emptyList()).map { it.id }.toSet()
-        val available = remember(uiState.reservationJeux, resaId, alreadyOnTable) {
-            (uiState.reservationJeux[resaId] ?: emptyList()).filter { it.id !in alreadyOnTable }
+    val assignTableId = uiState.resaTableForJeuDialog?.id
+    val assignResaId = uiState.resaIdForJeuTableDialog
+    if (uiState.showAssignJeuToResaTableDialog && assignTableId != null && assignResaId != null) {
+        val alreadyOnTableIds = remember(uiState.resaTableJeux, assignTableId) {
+            (uiState.resaTableJeux[assignTableId] ?: emptyList()).map { it.id }.toSet()
+        }
+        val reservationJeuxByJeuId = remember(uiState.reservationJeux, assignResaId) {
+            (uiState.reservationJeux[assignResaId] ?: emptyList()).associateBy { it.jeuId }
         }
         AssignJeuToResaTableDialog(
-            jeux = available,
-            onAssign = { jeuFestivalId -> viewModel.assignJeuToResaTable(jeuFestivalId, tableId) },
+            editeurJeux = uiState.editeurJeuxForDialog,
+            alreadyOnTableIds = alreadyOnTableIds,
+            reservationJeuxByJeuId = reservationJeuxByJeuId,
+            onAssign = { jeuId -> viewModel.assignJeuToResaTable(jeuId, assignTableId) },
             onDismiss = viewModel::dismissAssignJeuToResaTableDialog
         )
     }
@@ -1071,7 +1008,7 @@ private fun ReservationsTabContent(
                         onAddTable = { viewModel.showAddResaTableDialog(resa) },
                         onRemoveTable = { tableId -> viewModel.removeTableFromReservation(resaId, tableId) },
                         onToggleTable = { tableId -> viewModel.toggleResaTableExpand(tableId) },
-                        onAssignJeuToTable = { table -> viewModel.showAssignJeuToResaTableDialog(table, resaId) },
+                        onAssignJeuToTable = { table -> viewModel.showAssignJeuToResaTableDialog(table, resa) },
                         onRemoveJeuFromTable = { jeuFestivalId, tableId -> viewModel.removeJeuFromResaTable(jeuFestivalId, tableId) }
                     )
                 }
@@ -1269,38 +1206,50 @@ private fun ResaTableRow(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F4F8))
     ) {
+        // En-tête toujours visible
         Row(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                null, tint = TextMuted, modifier = Modifier.size(16.dp)
-            )
-            Spacer(Modifier.width(4.dp))
-            Text("Table #${table.id}", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = NavyBlue, modifier = Modifier.weight(1f))
-            StatutTableBadge(table.statut)
-            Spacer(Modifier.width(8.dp))
+            // Partie gauche cliquable pour expand/collapse
+            Row(
+                modifier = Modifier.weight(1f).clickable(onClick = onToggle),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    null, tint = TextMuted, modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "Table #${table.id}",
+                    fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = NavyBlue
+                )
+                Spacer(Modifier.width(8.dp))
+                StatutTableBadge(table.statut)
+            }
+            // Boutons toujours visibles
             if (isOrganisateurPlus) {
-                IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Remove, null, tint = Destructive, modifier = Modifier.size(14.dp))
+                if (table.statut != StatutTable.PLEIN) {
+                    IconButton(onClick = onAssignJeu, modifier = Modifier.size(30.dp)) {
+                        Icon(Icons.Default.Add, "Assigner un jeu", tint = BrightBlue, modifier = Modifier.size(16.dp))
+                    }
+                }
+                IconButton(onClick = onRemove, modifier = Modifier.size(30.dp)) {
+                    Icon(Icons.Default.Remove, "Retirer la table", tint = Destructive, modifier = Modifier.size(16.dp))
                 }
             }
         }
 
+        // Section dépliable : liste des jeux sur la table
         if (isExpanded) {
             Column(modifier = Modifier.padding(start = 28.dp, end = 8.dp, bottom = 8.dp)) {
-                if (isOrganisateurPlus && table.statut != StatutTable.PLEIN) {
-                    TextButton(onClick = onAssignJeu) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Assigner un jeu", fontSize = 11.sp)
-                    }
-                }
                 if (jeux == null) {
                     Box(Modifier.fillMaxWidth().padding(4.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     }
+                } else if (jeux.isEmpty()) {
+                    Text("Aucun jeu sur cette table", fontSize = 11.sp, color = TextMuted, modifier = Modifier.padding(vertical = 4.dp))
                 } else {
                     jeux.forEach { jeu ->
                         Row(
@@ -1418,26 +1367,51 @@ private fun AddResaJeuDialog(
 
 @Composable
 private fun AssignJeuToResaTableDialog(
-    jeux: List<JeuFestivalViewDto>,
-    onAssign: (Int) -> Unit,
+    editeurJeux: List<JeuDto>,
+    alreadyOnTableIds: Set<Int>,        // jeuFestival IDs déjà sur cette table
+    reservationJeuxByJeuId: Map<Int, JeuFestivalViewDto>, // jeuId → jeuFestival
+    onAssign: (Int) -> Unit,            // passe le jeuId
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Assigner un jeu à la table") },
         text = {
-            if (jeux.isEmpty()) {
-                Text("Aucun jeu disponible", color = TextMuted, fontSize = 13.sp)
+            if (editeurJeux.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = BrightBlue)
+                }
             } else {
-                LazyColumn(modifier = Modifier.heightIn(max = 300.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(jeux, key = { it.id }) { jeu ->
+                LazyColumn(modifier = Modifier.heightIn(max = 320.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    items(editeurJeux, key = { it.id ?: it.nom }) { jeu ->
+                        val jeuFestival = jeu.id?.let { reservationJeuxByJeuId[it] }
+                        val dejaTable = jeuFestival != null && jeuFestival.id in alreadyOnTableIds
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable { onAssign(jeu.id) }
-                                .clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F4F8))
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (dejaTable) Color(0xFFEEEEEE) else Color(0xFFF0F4F8))
+                                .clickable(enabled = !dejaTable) { jeu.id?.let(onAssign) }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(jeu.jeuNom ?: "Jeu #${jeu.id}", fontSize = 13.sp, color = NavyBlue, modifier = Modifier.weight(1f))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    jeu.nom,
+                                    fontSize = 13.sp,
+                                    color = if (dejaTable) TextMuted else NavyBlue,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                when {
+                                    dejaTable -> Text("Déjà sur cette table", fontSize = 10.sp, color = TextMuted)
+                                    jeuFestival != null -> Text("Dans la réservation", fontSize = 10.sp, color = BrightBlue)
+                                    else -> Text("Sera ajouté à la réservation", fontSize = 10.sp, color = Color(0xFF2E7D32))
+                                }
+                            }
+                            if (dejaTable) {
+                                Icon(Icons.Default.Check, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
                 }

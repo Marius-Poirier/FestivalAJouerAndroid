@@ -57,8 +57,12 @@ class WorkflowRepository(private val api: WorkflowApiService) {
     suspend fun removeJeuFromTable(request: JeuFestivalTableRequest) =
         api.removeJeuFromTable(request)
 
-    suspend fun getReservationTables(reservationId: Int): List<TableJeuDto> =
-        api.getReservationTables(reservationId)
+    suspend fun getTableById(id: Int): TableJeuDto = api.getTableById(id)
+
+    suspend fun getReservationTables(reservationId: Int): List<TableJeuDto> {
+        val entries = api.getReservationTables(reservationId)
+        return entries.map { api.getTableById(it.tableId) }
+    }
 
     suspend fun addTableToReservation(request: ReservationTableRequest) =
         api.addTableToReservation(request)
