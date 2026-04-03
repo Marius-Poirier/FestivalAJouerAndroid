@@ -8,11 +8,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -178,7 +176,7 @@ fun WorkflowScreen(
             WorkflowTab.EDITEUR -> EditeurTabContent(uiState, viewModel)
             WorkflowTab.JEUX -> JeuxTabContent(uiState, viewModel)
             WorkflowTab.ZONE_TARIFAIRE -> ZoneTarifaireTabContent(uiState, viewModel, isAdminSuperorga)
-            WorkflowTab.ZONE_DU_PLAN -> ZoneDuPlanTabContent(uiState, viewModel, isAdminSuperorga, isOrganisateurPlus)
+            WorkflowTab.ZONE_DU_PLAN -> ZoneDuPlanTabContent(uiState, viewModel, isAdminSuperorga)
             WorkflowTab.RESERVATIONS -> ReservationsTabContent(
                 uiState, viewModel, isOrganisateurPlus,
                 onEditReservation = { resaId ->
@@ -572,8 +570,7 @@ private fun ZoneTarifaireDialog(
 private fun ZoneDuPlanTabContent(
     uiState: WorkflowUiState,
     viewModel: WorkflowViewModel,
-    isAdminSuperorga: Boolean,
-    isOrganisateurPlus: Boolean
+    isAdminSuperorga: Boolean
 ) {
     var zoneToDelete by remember { mutableStateOf<ZoneDuPlanDto?>(null) }
 
@@ -825,64 +822,6 @@ private fun ZoneDuPlanDialog(
             }) { Text("Enregistrer", color = BrightBlue) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler", color = TextMuted) } }
-    )
-}
-
-@Composable
-private fun AddTableDialog(onDismiss: () -> Unit, onSave: (Int) -> Unit) {
-    var capacite by remember { mutableStateOf("2") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Ajouter une table") },
-        text = {
-            OutlinedTextField(
-                value = capacite, onValueChange = { capacite = it },
-                label = { Text("Capacité de jeux") },
-                singleLine = true, modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = RoundedCornerShape(8.dp),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = BrightBlue, focusedLabelColor = BrightBlue)
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                val cap = capacite.toIntOrNull() ?: return@TextButton
-                onSave(cap)
-            }) { Text("Ajouter", color = BrightBlue) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler", color = TextMuted) } }
-    )
-}
-
-@Composable
-private fun AssignJeuToTableDialog(
-    jeux: List<JeuFestivalViewDto>,
-    onDismiss: () -> Unit,
-    onAssign: (Int) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Assigner un jeu") },
-        text = {
-            if (jeux.isEmpty()) {
-                Text("Aucun jeu disponible", color = TextMuted, fontSize = 13.sp)
-            } else {
-                LazyColumn(modifier = Modifier.heightIn(max = 300.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(jeux, key = { it.id }) { jeu ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clickable { onAssign(jeu.id) }
-                                .clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F4F8))
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(jeu.jeuNom ?: "Jeu #${jeu.id}", fontSize = 13.sp, color = NavyBlue, modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Fermer", color = TextMuted) } }
     )
 }
 
