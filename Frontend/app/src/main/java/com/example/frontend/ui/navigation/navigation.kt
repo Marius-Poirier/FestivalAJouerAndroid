@@ -55,6 +55,7 @@ fun AppNavGraph() {
     val festivalListViewModel: FestivalListViewModel = viewModel()
 
     var jeuListReloadKey by remember { mutableIntStateOf(0) }
+    var jeuDetailReloadKey by remember { mutableIntStateOf(0) }
 
     val currentDestination = backStack.lastOrNull()
     val showBottomNav = currentDestination?.let {
@@ -151,7 +152,8 @@ fun AppNavGraph() {
                         JeuDetailScreen(
                             jeuId = dest.jeuId,
                             onBack = { backStack.removeLastOrNull() },
-                            onEdit = { id -> backStack.add(JeuForm(jeuId = id)) }
+                            onEdit = { id -> backStack.add(JeuForm(jeuId = id)) },
+                            reloadKey = jeuDetailReloadKey
                         )
                     }
 
@@ -161,6 +163,7 @@ fun AppNavGraph() {
                             onBack = { backStack.removeLastOrNull() },
                             onSaved = {
                                 jeuListReloadKey++
+                                jeuDetailReloadKey++
                                 backStack.removeLastOrNull()
                             }
                         )
