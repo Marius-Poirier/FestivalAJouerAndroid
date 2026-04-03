@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.frontend.core.network.RetrofitInstance
 import com.example.frontend.data.dto.CreateJeuRequest
+import com.example.frontend.data.dto.EditeurDto
 import com.example.frontend.data.dto.MecanismeDto
 import com.example.frontend.data.dto.TypeJeuDto
+import com.example.frontend.data.repository.EditeurRepository
 import com.example.frontend.data.repository.JeuRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,11 +32,13 @@ data class JeuFormUiState(
     val selectedEditeursIds: List<Int> = emptyList(),
     val selectedMecanismesIds: List<Int> = emptyList(),
     val typesJeu: List<TypeJeuDto> = emptyList(),
-    val mecanismes: List<MecanismeDto> = emptyList()
+    val mecanismes: List<MecanismeDto> = emptyList(),
+    val editeurs: List<EditeurDto> = emptyList()
 )
 
 class JeuFormViewModel(private val jeuId: Int? = null) : ViewModel() {
     private val jeuRepository = JeuRepository(RetrofitInstance.jeuApi, RetrofitInstance.metadataApi)
+    private val editeurRepository = EditeurRepository(RetrofitInstance.editeurApi)
 
     private val _uiState = MutableStateFlow(JeuFormUiState(isEditMode = jeuId != null))
     val uiState = _uiState.asStateFlow()
@@ -49,7 +53,8 @@ class JeuFormViewModel(private val jeuId: Int? = null) : ViewModel() {
             try {
                 val types = jeuRepository.getTypesJeu()
                 val mecas = jeuRepository.getMecanismes()
-                _uiState.value = _uiState.value.copy(typesJeu = types, mecanismes = mecas)
+                val editeurs = editeurRepository.getAll()
+                _uiState.value = _uiState.value.copy(typesJeu = types, mecanismes = mecas, editeurs = editeurs)
             } catch (_: Exception) {}
         }
     }
@@ -90,6 +95,13 @@ class JeuFormViewModel(private val jeuId: Int? = null) : ViewModel() {
     fun onUrlImageChange(v: String) { _uiState.value = _uiState.value.copy(urlImage = v) }
     fun onPrototypeChange(v: Boolean) { _uiState.value = _uiState.value.copy(prototype = v) }
     fun onTypeSelected(id: Int?) { _uiState.value = _uiState.value.copy(selectedTypeId = id) }
+
+    fun onEditeurToggle(id: Int) {
+        val current = _uiState.value.selectedEditeursIds
+        _uiState.value = _uiState.value.copy(
+            selectedEditeursIds = if (id in current) current - id else current + id
+        )
+    }
 
     fun onNavigated() { _uiState.value = _uiState.value.copy(isSuccess = false) }
 
