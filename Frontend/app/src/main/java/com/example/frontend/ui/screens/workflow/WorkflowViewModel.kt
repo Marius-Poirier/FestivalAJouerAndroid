@@ -53,10 +53,6 @@ data class WorkflowUiState(
     val tablesByZone: Map<Int, List<TableJeuDto>> = emptyMap(),
     val expandedTableIds: Set<Int> = emptySet(),
     val jeusByTable: Map<Int, List<JeuTableDto>> = emptyMap(),
-    val showAddTableDialog: Boolean = false,
-    val addTableForZone: ZoneDuPlanDto? = null,
-    val showAssignJeuDialog: Boolean = false,
-    val assignJeuForTable: TableJeuDto? = null,
 
     // Onglet Réservations
     val reservations: List<ReservationDto> = emptyList(),
@@ -329,70 +325,6 @@ class WorkflowViewModel : ViewModel() {
             try {
                 val jeux = repo.getJeuxByTable(tableId)
                 update { copy(jeusByTable = jeusByTable + (tableId to jeux)) }
-            } catch (e: Exception) {
-                update { copy(error = e.message) }
-            }
-        }
-    }
-
-    fun showAddTableDialog(zone: ZoneDuPlanDto) = update { copy(showAddTableDialog = true, addTableForZone = zone) }
-    fun dismissAddTableDialog() = update { copy(showAddTableDialog = false, addTableForZone = null) }
-
-    fun createTable(zone: ZoneDuPlanDto, capaciteJeux: Int) {
-        viewModelScope.launch {
-            try {
-                repo.createTable(CreateTableRequest(zone.id!!, zone.zoneTarifaireId, capaciteJeux))
-                dismissAddTableDialog()
-                update { copy(tablesByZone = tablesByZone - zone.id) }
-                loadTablesForZone(zone.id)
-            } catch (e: Exception) {
-                update { copy(error = e.message) }
-            }
-        }
-    }
-
-    fun deleteTable(tableId: Int, zoneId: Int) {
-        viewModelScope.launch {
-            try {
-                repo.deleteTable(tableId)
-                update { copy(tablesByZone = tablesByZone - zoneId) }
-                loadTablesForZone(zoneId)
-            } catch (e: Exception) {
-                update { copy(error = e.message) }
-            }
-        }
-    }
-
-    fun showAssignJeuDialog(table: TableJeuDto) = update { copy(showAssignJeuDialog = true, assignJeuForTable = table) }
-    fun dismissAssignJeuDialog() = update { copy(showAssignJeuDialog = false, assignJeuForTable = null) }
-
-    fun assignJeuToTable(jeuFestivalId: Int, tableId: Int) {
-        viewModelScope.launch {
-            try {
-                repo.assignJeuToTable(JeuFestivalTableRequest(jeuFestivalId, tableId))
-                dismissAssignJeuDialog()
-                update { copy(jeusByTable = jeusByTable - tableId) }
-                loadJeuxForTable(tableId)
-                val zoneId = _uiState.value.tablesByZone.entries
-                    .firstOrNull { entry -> entry.value.any { it.id == tableId } }?.key
-                if (zoneId != null) {
-                    update { copy(tablesByZone = tablesByZone - zoneId) }
-                    loadTablesForZone(zoneId)
-                }
-            } catch (e: Exception) {
-                update { copy(error = e.message) }
-            }
-        }
-    }
-
-    fun removeJeuFromTable(jeuFestivalId: Int, tableId: Int, zoneId: Int) {
-        viewModelScope.launch {
-            try {
-                repo.removeJeuFromTable(JeuFestivalTableRequest(jeuFestivalId, tableId))
-                update { copy(jeusByTable = jeusByTable - tableId) }
-                loadJeuxForTable(tableId)
-                update { copy(tablesByZone = tablesByZone - zoneId) }
-                loadTablesForZone(zoneId)
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
