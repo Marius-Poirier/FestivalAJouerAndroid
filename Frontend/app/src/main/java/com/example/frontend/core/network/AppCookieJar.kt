@@ -14,7 +14,7 @@ class AppCookieJar(private val dataStore: UserPreferencesDataStore? = null) : Co
     private val cookieStore = ConcurrentHashMap<String, List<Cookie>>()
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    // ── Appelé au démarrage pour recharger les cookies du disque ──
+    // ── Appelé au démarrage pour recharger les cookies du disque (dataStore)
     fun restoreCookies(host: String, cookies: List<Cookie>) {
         if (cookies.isNotEmpty()) {
             cookieStore[host] = cookies
@@ -47,11 +47,12 @@ class AppCookieJar(private val dataStore: UserPreferencesDataStore? = null) : Co
         cookieStore[host] = existing
     }
 
-    // ── OkHttp appelle ça avant chaque requête ──
+    // ── filtrer pour garder que les token qui s'en sont pas expiré
+    // OkHttp appelle ça quand il envoie une requête au backend automatiquement
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         return cookieStore[url.host]?.filter { cookie ->
-            !cookie.expiresAt.let { it > 0 && it < System.currentTimeMillis() }
-        } ?: emptyList()
+            !cookie.expiresAt.let { it > 0 && it < System.currentTimeMillis() } //on garde le token si pas de date d'expiration ou si la date est inferieur a la date actuelle
+        } ?: emptyList() // si pas de token on renvoie une liste vide
     }
 
     fun clearAll() {

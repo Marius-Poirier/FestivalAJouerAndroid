@@ -18,10 +18,7 @@ class AuthAuthenticator(
 
     // Évite les boucles infinies : max 1 retry par requête
     override fun authenticate(route: Route?, response: Response): Request? {
-        // Si on a déjà retenté, on abandonne
         if (response.request.header("X-Auth-Retry") != null) return null
-
-        // Ne pas intercepter les routes d'auth elles-mêmes
         val url = response.request.url.toString()
         val excluded = listOf("/auth/login", "/auth/logout", "/auth/refresh", "/auth/whoami")
         if (excluded.any { url.contains(it) }) return null

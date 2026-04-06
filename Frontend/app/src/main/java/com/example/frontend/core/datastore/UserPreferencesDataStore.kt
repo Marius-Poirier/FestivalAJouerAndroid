@@ -17,15 +17,15 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class UserPreferencesDataStore(private val context: Context) {
 
     companion object {
-        // ── Session utilisateur ────────────────────────────
+        //Sauvegarder les infos de l'utilisateur
         val KEY_EMAIL = stringPreferencesKey("email")
         val KEY_ROLE = stringPreferencesKey("role")
         val KEY_STATUT = stringPreferencesKey("statut")
         val KEY_IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
 
-        // ── Cookies ────────────────────────────────────────
-        val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token")
-        val KEY_REFRESH_TOKEN = stringPreferencesKey("refresh_token")
+        // Cookies pour l'authentification car avec uniquement les information de l'utilisateur (le nom) en suffisent pas au backend pour savoir si on est authentifié
+        val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token") // Nom du cookie
+        val KEY_REFRESH_TOKEN = stringPreferencesKey("refresh_token") // demander au backend un nouveau token si expiré
         val KEY_ACCESS_TOKEN_EXPIRES = longPreferencesKey("access_token_expires")
         val KEY_REFRESH_TOKEN_EXPIRES = longPreferencesKey("refresh_token_expires")
     }
