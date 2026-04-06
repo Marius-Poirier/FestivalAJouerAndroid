@@ -31,6 +31,7 @@ fun JeuDetailScreen(
     jeuId: Int,
     onBack: () -> Unit,
     onEdit: (Int) -> Unit,
+    reloadKey: Int = 0,
     viewModel: JeuDetailViewModel = viewModel(
         key = "jeu_$jeuId",
         factory = viewModelFactory { initializer { JeuDetailViewModel(jeuId) } }
@@ -39,6 +40,10 @@ fun JeuDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val canManage = viewModel.authManager.isAdminSuperorgaOrga
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(reloadKey) {
+        if (reloadKey > 0) viewModel.load()
+    }
 
     if (showDeleteDialog) {
         ConfirmDeleteDialog(

@@ -1,6 +1,6 @@
 package com.example.frontend.ui.navigation
 
-
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,19 +16,30 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.example.frontend.ui.components.AppTopBar
 import com.example.frontend.ui.components.BottomNavBar
+import com.example.frontend.ui.components.LocalOnAdminClick
 import com.example.frontend.ui.components.LocalOnLogoClick
 import com.example.frontend.ui.screens.auth.LoginScreen
 import com.example.frontend.ui.screens.auth.RegisterScreen
 import com.example.frontend.ui.screens.festivals.FestivalFormScreen
 import com.example.frontend.ui.screens.festivals.FestivalListScreen
 import com.example.frontend.ui.screens.festivals.FestivalListViewModel
+import com.example.frontend.ui.screens.workflow.WorkflowViewModel
+import com.example.frontend.ui.screens.festivals.FestivalFormScreen
 import com.example.frontend.ui.screens.home.HomeScreen
 import com.example.frontend.ui.screens.jeux.JeuDetailScreen
 import com.example.frontend.ui.screens.jeux.JeuFormScreen
 import com.example.frontend.ui.screens.jeux.JeuListScreen
+
 import com.example.frontend.core.network.RetrofitInstance
 import com.example.frontend.ui.theme.BrightBlue
 import kotlinx.coroutines.launch
+import com.example.frontend.ui.screens.editeurs.EditeurDetailScreen
+import com.example.frontend.ui.screens.editeurs.EditeurFormScreen
+import com.example.frontend.ui.screens.editeurs.EditeurListScreen
+import com.example.frontend.ui.screens.admin.AdminScreen
+import com.example.frontend.ui.screens.workflow.ReservationFormScreen
+import com.example.frontend.ui.screens.workflow.WorkflowScreen
+
 
 // Destinations qui affichent la BottomNavBar
 private val bottomNavDestinations = setOf(
@@ -54,6 +65,7 @@ fun AppNavGraph() {
     val festivalListViewModel: FestivalListViewModel = viewModel()
 
     var jeuListReloadKey by remember { mutableIntStateOf(0) }
+    var jeuDetailReloadKey by remember { mutableIntStateOf(0) }
 
     val currentDestination = backStack.lastOrNull()
     val showBottomNav = currentDestination?.let {
@@ -127,6 +139,11 @@ fun AppNavGraph() {
             LocalOnLogoClick provides {
                 backStack.clear()
                 backStack.add(Home)
+            },
+            LocalOnAdminClick provides {
+                if (currentDestination?.let { it::class != Admin::class } != false) {
+                    backStack.add(Admin)
+                }
             }
         ) {
             NavDisplay(
@@ -198,7 +215,8 @@ fun AppNavGraph() {
                         JeuDetailScreen(
                             jeuId = dest.jeuId,
                             onBack = { backStack.removeLastOrNull() },
-                            onEdit = { id -> backStack.add(JeuForm(jeuId = id)) }
+                            onEdit = { id -> backStack.add(JeuForm(jeuId = id)) },
+                            reloadKey = jeuDetailReloadKey
                         )
                     }
 
@@ -208,6 +226,7 @@ fun AppNavGraph() {
                             onBack = { backStack.removeLastOrNull() },
                             onSaved = {
                                 jeuListReloadKey++
+                                jeuDetailReloadKey++
                                 backStack.removeLastOrNull()
                             }
                         )
@@ -215,33 +234,60 @@ fun AppNavGraph() {
 
                     // ── Éditeurs ──────────────────────────────────
                     entry<EditeurList> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            AppTopBar(title = "Éditeurs")
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("À venir")
-                            }
-                        }
+                        EditeurListScreen(
+                            onEditeurClick = { id -> backStack.add(EditeurDetail(editeurId = id)) },
+                            onAddEditeur = { backStack.add(EditeurForm()) }
+                        )
+                    }
+
+                    entry<EditeurDetail> { dest ->
+                        EditeurDetailScreen(
+                            editeurId = dest.editeurId,
+                            onBack = { backStack.removeLastOrNull() },
+                            onEdit = { id -> backStack.add(EditeurForm(editeurId = id)) },
+                            onJeuClick = { id -> backStack.add(JeuDetail(jeuId = id)) }
+                        )
+                    }
+
+                    entry<EditeurForm> { dest ->
+                        EditeurFormScreen(
+                            editeurId = if (dest.editeurId == 0) null else dest.editeurId,
+                            onBack = { backStack.removeLastOrNull() }
+                        )
                     }
 
                     // ── Workflow ──────────────────────────────────
                     entry<Workflow> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            AppTopBar(title = "Workflow")
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("À venir")
+                        val workflowViewModel: WorkflowViewModel = viewModel()
+                        WorkflowScreen(
+                            onEditReservation = { resaId, festivalId ->
+                                backStack.add(ReservationForm(reservationId = resaId, festivalId = festivalId))
+                            },
+                            onCreateReservation = { festivalId ->
+                                backStack.add(ReservationForm(festivalId = festivalId))
+                            },
+                            viewModel = workflowViewModel
+                        )
+                    }
+
+                    entry<ReservationForm> { dest ->
+                        // On récupère le ViewModel existant s'il existe (celui du workflow parent)
+                        val workflowViewModel: WorkflowViewModel = viewModel()
+                        ReservationFormScreen(
+                            reservationId = if (dest.reservationId == 0) null else dest.reservationId,
+                            festivalId = dest.festivalId,
+                            onBack = {
+                                workflowViewModel.loadReservations()
+                                backStack.removeLastOrNull()
                             }
-                        }
+                        )
                     }
 
                     // ── Admin ─────────────────────────────────────
                     entry<Admin> {
-                        // À implémenter
+                        AdminScreen(
+                            onBack = { backStack.removeLastOrNull() }
+                        )
                     }
 
                 }

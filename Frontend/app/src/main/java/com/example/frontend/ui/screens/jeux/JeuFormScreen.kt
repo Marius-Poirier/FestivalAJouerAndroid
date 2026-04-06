@@ -1,11 +1,15 @@
 package com.example.frontend.ui.screens.jeux
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
@@ -105,6 +109,65 @@ fun JeuFormScreen(
                             "Âge min", uiState.ageMin, viewModel::onAgeMinChange,
                             KeyboardType.Number, Modifier.weight(1f)
                         )
+                    }
+
+                    // Éditeur(s)
+                    if (uiState.editeurs.isNotEmpty()) {
+                        var showEditeurDialog by remember { mutableStateOf(false) }
+                        val selectedNames = uiState.editeurs
+                            .filter { it.id != null && it.id in uiState.selectedEditeursIds }
+                            .joinToString(", ") { it.nom }
+
+                        OutlinedTextField(
+                            value = selectedNames.ifEmpty { "Aucun éditeur sélectionné" },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Éditeur(s)") },
+                            trailingIcon = {
+                                Icon(Icons.Default.ArrowDropDown, null,
+                                    modifier = Modifier.clickable { showEditeurDialog = true })
+                            },
+                            modifier = Modifier.fillMaxWidth().clickable { showEditeurDialog = true },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = BrightBlue,
+                                focusedLabelColor = BrightBlue
+                            )
+                        )
+
+                        if (showEditeurDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showEditeurDialog = false },
+                                title = { Text("Sélectionner les éditeurs") },
+                                text = {
+                                    androidx.compose.foundation.lazy.LazyColumn(
+                                        modifier = Modifier.heightIn(max = 300.dp)
+                                    ) {
+                                        items(uiState.editeurs) { editeur ->
+                                            val selected = editeur.id != null && editeur.id in uiState.selectedEditeursIds
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { editeur.id?.let { viewModel.onEditeurToggle(it) } }
+                                                    .padding(vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Checkbox(
+                                                    checked = selected,
+                                                    onCheckedChange = { editeur.id?.let { viewModel.onEditeurToggle(it) } }
+                                                )
+                                                Text(editeur.nom, fontSize = 14.sp, color = NavyBlue)
+                                            }
+                                        }
+                                    }
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = { showEditeurDialog = false }) {
+                                        Text("Fermer", color = BrightBlue)
+                                    }
+                                }
+                            )
+                        }
                     }
 
                     JeuTextField("Thème", uiState.theme, viewModel::onThemeChange)
