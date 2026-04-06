@@ -16,6 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.frontend.ui.components.AppTopBar
+import com.example.frontend.ui.screens.festivals.FestivalFormViewModel
 import com.example.frontend.ui.components.ErrorBanner
 import com.example.frontend.ui.theme.AppBackground
 import com.example.frontend.ui.theme.BrightBlue

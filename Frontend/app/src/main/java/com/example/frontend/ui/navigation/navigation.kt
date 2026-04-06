@@ -5,15 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,6 +20,7 @@ import com.example.frontend.ui.components.LocalOnAdminClick
 import com.example.frontend.ui.components.LocalOnLogoClick
 import com.example.frontend.ui.screens.auth.LoginScreen
 import com.example.frontend.ui.screens.auth.RegisterScreen
+import com.example.frontend.ui.screens.festivals.FestivalFormScreen
 import com.example.frontend.ui.screens.festivals.FestivalListScreen
 import com.example.frontend.ui.screens.festivals.FestivalListViewModel
 import com.example.frontend.ui.screens.workflow.WorkflowViewModel
@@ -33,12 +29,17 @@ import com.example.frontend.ui.screens.home.HomeScreen
 import com.example.frontend.ui.screens.jeux.JeuDetailScreen
 import com.example.frontend.ui.screens.jeux.JeuFormScreen
 import com.example.frontend.ui.screens.jeux.JeuListScreen
+
+import com.example.frontend.core.network.RetrofitInstance
+import com.example.frontend.ui.theme.BrightBlue
+import kotlinx.coroutines.launch
 import com.example.frontend.ui.screens.editeurs.EditeurDetailScreen
 import com.example.frontend.ui.screens.editeurs.EditeurFormScreen
 import com.example.frontend.ui.screens.editeurs.EditeurListScreen
 import com.example.frontend.ui.screens.admin.AdminScreen
 import com.example.frontend.ui.screens.workflow.ReservationFormScreen
 import com.example.frontend.ui.screens.workflow.WorkflowScreen
+
 
 // Destinations qui affichent la BottomNavBar
 private val bottomNavDestinations = setOf(
@@ -52,6 +53,13 @@ private val bottomNavDestinations = setOf(
 @Composable
 fun AppNavGraph() {
 
+    // ── Vérification de session au démarrage ──────────────
+    var isCheckingSession by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+    val dataStore = RetrofitInstance.userPreferencesDataStore
+    val authManager = RetrofitInstance.authManager
+
+
     val backStack = remember { mutableStateListOf<Any>(Login) }
 
     val festivalListViewModel: FestivalListViewModel = viewModel()
@@ -63,6 +71,54 @@ fun AppNavGraph() {
     val showBottomNav = currentDestination?.let {
         it::class in bottomNavDestinations
     } ?: false
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            dataStore.userPreferences.collect { prefs ->
+                if (prefs.isLoggedIn) {
+                    // 1. Restaure les cookies depuis le disque
+                    val savedCookies = dataStore.getSavedCookies()
+                    val host = "api.mxrjup.fun"
+
+                    val cookies = savedCookies.map { (name, value, expiresAt) ->
+                        okhttp3.Cookie.Builder()
+                            .name(name)
+                            .value(value)
+                            .domain(host)
+                            .expiresAt(expiresAt)
+                            .build()
+                    }
+                    RetrofitInstance.cookieJar.restoreCookies(host, cookies)
+
+                    // 2. Vérifie la session auprès du backend
+                    val ok = authManager.whoami()
+                    if (ok) {
+                        android.util.Log.d("SESSION", "Session restaurée : ${prefs.email} / ${prefs.role}")
+                        backStack.add(Home)
+                    } else {
+                        android.util.Log.d("SESSION", "Cookie expiré → Login")
+                        dataStore.clearUser()
+                        backStack.add(Login)
+                    }
+                } else {
+                    android.util.Log.d("SESSION", "Aucune session → Login")
+                    backStack.add(Login)
+                }
+                isCheckingSession = false
+                return@collect
+            }
+        }
+    }
+    // ── Écran de chargement pendant la vérification ───────
+    if (isCheckingSession) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = BrightBlue)
+        }
+        return
+    }
 
     Scaffold(
         bottomBar = {

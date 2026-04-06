@@ -69,4 +69,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.coil.compose)
+
+    //DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 }

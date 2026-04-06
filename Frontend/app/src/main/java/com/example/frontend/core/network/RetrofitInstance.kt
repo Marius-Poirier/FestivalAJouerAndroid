@@ -1,6 +1,8 @@
 package com.example.frontend.core.network
 
 
+
+import android.content.Context
 import com.example.frontend.api.AdminApiService
 import com.example.frontend.api.EditeurApiService
 import com.example.frontend.api.FestivalApiService
@@ -9,6 +11,7 @@ import com.example.frontend.api.MetadataApiService
 import com.example.frontend.api.WorkflowApiService
 import com.example.frontend.api.auth.AuthApiService
 import com.example.frontend.core.auth.AuthManager
+import com.example.frontend.core.datastore.UserPreferencesDataStore
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -19,33 +22,38 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 object RetrofitInstance {
 
     private const val BASE_URL = "https://api.mxrjup.fun/api/"
-
-    val cookieJar = AppCookieJar()
-    private val authenticator = AuthAuthenticator(cookieJar)
+    lateinit var userPreferencesDataStore: UserPreferencesDataStore
+        private set
+    lateinit var cookieJar: AppCookieJar
+        private set
+    private val authenticator by lazy { AuthAuthenticator(cookieJar) }
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val okHttpClient = OkHttpClient.Builder()
-        .cookieJar(cookieJar)
-        .authenticator(authenticator)
-        .addInterceptor(
-            HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+    private val okHttpClient by lazy {
+        OkHttpClient.Builder()
+            .cookieJar(cookieJar)
+            .authenticator(authenticator)
+            .addInterceptor(
+                HttpLoggingInterceptor().apply {
+                    level = HttpLoggingInterceptor.Level.BODY
+                }
+            )
+            .apply {
+                val (sslContext, trustManager) = TrustAllCerts.create()
+                sslSocketFactory(sslContext.socketFactory, trustManager)
+                hostnameVerifier { _, _ -> true }
             }
-        )
-        .apply {
-            val (sslContext, trustManager) = TrustAllCerts.create()
-            sslSocketFactory(sslContext.socketFactory, trustManager)
-            hostnameVerifier { _, _ -> true }
-        }
-        .build()
+            .build()
+    }
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-        .build()
-
+    private val retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
     val authApi: AuthApiService by lazy {
         retrofit.create(AuthApiService::class.java)
     }
@@ -77,6 +85,11 @@ object RetrofitInstance {
 
     val authManager: AuthManager by lazy {
         AuthManager(authApi, cookieJar)
+    }
+
+    fun init(context: Context) {
+        userPreferencesDataStore = UserPreferencesDataStore(context.applicationContext)
+        cookieJar = AppCookieJar(userPreferencesDataStore)
     }
 
 }

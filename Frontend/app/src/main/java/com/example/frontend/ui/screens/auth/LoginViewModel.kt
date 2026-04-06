@@ -2,8 +2,9 @@ package com.example.frontend.ui.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.frontend.core.auth.AuthManager
 import com.example.frontend.core.network.RetrofitInstance
-import com.example.frontend.data.repository.AuthRepository
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -14,11 +15,9 @@ data class LoginUiState(
     val isSuccess: Boolean = false
 )
 
-class LoginViewModel() : ViewModel() {
+class LoginViewModel : ViewModel() {
 
-    private val authRepository = AuthRepository(RetrofitInstance.authApi)
     private val authManager = RetrofitInstance.authManager
-
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
@@ -30,33 +29,13 @@ class LoginViewModel() : ViewModel() {
         }
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            try {
-                val response = authRepository.login(email.trim(), password)
-                if (response.isSuccessful && response.body()?.user != null) {
-                    // Récupère les infos complètes via /users/me (cookie posé par le login)
-                    val ok = authManager.whoami()
-                    if (ok) {
-                        _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = "Impossible de récupérer les informations du compte"
-                        )
-                    }
-                } else {
-                    val errorMsg = when (response.code()) {
-                        401 -> "Identifiants invalides"
-                        403 -> "Compte en attente de validation ou bloqué"
-                        0 -> "Serveur injoignable"
-                        else -> "Erreur serveur (${response.code()})"
-                    }
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = errorMsg)
+            when (val result = authManager.login(email.trim(), password)) {
+                is AuthManager.LoginResult.Success -> {
+                    _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Impossible de contacter le serveur : ${e.message}"
-                )
+                is AuthManager.LoginResult.Error -> {
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = result.message)
+                }
             }
         }
     }
