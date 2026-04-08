@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
@@ -137,27 +138,46 @@ fun JeuFormScreen(
                         )
 
                         if (showEditeurDialog) {
+                            var searchQuery by remember { mutableStateOf("") }
+                            val filteredEditeurs = uiState.editeurs.filter {
+                                it.nom.contains(searchQuery, ignoreCase = true)
+                            }
                             AlertDialog(
                                 onDismissRequest = { showEditeurDialog = false },
                                 title = { Text("Sélectionner les éditeurs") },
                                 text = {
-                                    androidx.compose.foundation.lazy.LazyColumn(
-                                        modifier = Modifier.heightIn(max = 300.dp)
-                                    ) {
-                                        items(uiState.editeurs) { editeur ->
-                                            val selected = editeur.id != null && editeur.id in uiState.selectedEditeursIds
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable { editeur.id?.let { viewModel.onEditeurToggle(it) } }
-                                                    .padding(vertical = 4.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Checkbox(
-                                                    checked = selected,
-                                                    onCheckedChange = { editeur.id?.let { viewModel.onEditeurToggle(it) } }
-                                                )
-                                                Text(editeur.nom, fontSize = 14.sp, color = NavyBlue)
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        OutlinedTextField(
+                                            value = searchQuery,
+                                            onValueChange = { searchQuery = it },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            placeholder = { Text("Rechercher un éditeur...") },
+                                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = BrightBlue,
+                                                focusedLabelColor = BrightBlue
+                                            )
+                                        )
+                                        androidx.compose.foundation.lazy.LazyColumn(
+                                            modifier = Modifier.heightIn(max = 300.dp)
+                                        ) {
+                                            items(filteredEditeurs) { editeur ->
+                                                val selected = editeur.id != null && editeur.id in uiState.selectedEditeursIds
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clickable { editeur.id?.let { viewModel.onEditeurToggle(it) } }
+                                                        .padding(vertical = 4.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Checkbox(
+                                                        checked = selected,
+                                                        onCheckedChange = { editeur.id?.let { viewModel.onEditeurToggle(it) } }
+                                                    )
+                                                    Text(editeur.nom, fontSize = 14.sp, color = NavyBlue)
+                                                }
                                             }
                                         }
                                     }
