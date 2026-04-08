@@ -31,7 +31,7 @@ fun EditeurListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val canManage = viewModel.authManager.isAdminSuperorga
+    val canManage = viewModel.authManager.isAdminSuperorgaOrga
     var editeurToDelete by remember { mutableStateOf<EditeurDto?>(null) }
 
     LaunchedEffect(Unit) { viewModel.load() }

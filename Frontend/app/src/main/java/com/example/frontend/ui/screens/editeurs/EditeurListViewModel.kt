@@ -19,7 +19,7 @@ data class EditeurListUiState(
 @OptIn(FlowPreview::class)
 class EditeurListViewModel : ViewModel() {
     private val editeurRepository = EditeurRepository(RetrofitInstance.editeurApi)
-    val authManager = AuthManager(RetrofitInstance.authApi, RetrofitInstance.cookieJar)
+    val authManager = RetrofitInstance.authManager
 
     private val _uiState = MutableStateFlow(EditeurListUiState())
     val uiState = _uiState.asStateFlow()

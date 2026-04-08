@@ -223,6 +223,7 @@ fun AppNavGraph() {
                     entry<JeuForm> { dest ->
                         JeuFormScreen(
                             jeuId = if (dest.jeuId == 0) null else dest.jeuId,
+                            editeurId = dest.editeurId,
                             onBack = { backStack.removeLastOrNull() },
                             onSaved = {
                                 jeuListReloadKey++
@@ -252,7 +253,9 @@ fun AppNavGraph() {
                     entry<EditeurForm> { dest ->
                         EditeurFormScreen(
                             editeurId = if (dest.editeurId == 0) null else dest.editeurId,
-                            onBack = { backStack.removeLastOrNull() }
+                            onBack = { backStack.removeLastOrNull() },
+                            onJeuClick = { id -> backStack.add(JeuForm(jeuId = id)) },
+                            onAddJeu = { backStack.add(JeuForm(editeurId = dest.editeurId)) }
                         )
                     }
 
