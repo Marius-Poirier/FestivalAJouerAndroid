@@ -22,7 +22,7 @@ data class EditeurDetailUiState(
 
 class EditeurDetailViewModel(private val editeurId: Int) : ViewModel() {
     private val editeurRepository = EditeurRepository(RetrofitInstance.editeurApi)
-    val authManager = AuthManager(RetrofitInstance.authApi, RetrofitInstance.cookieJar)
+    val authManager = RetrofitInstance.authManager
 
     private val _uiState = MutableStateFlow(EditeurDetailUiState())
     val uiState = _uiState.asStateFlow()
