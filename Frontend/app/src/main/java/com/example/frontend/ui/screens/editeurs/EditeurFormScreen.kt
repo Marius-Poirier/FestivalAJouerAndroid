@@ -7,11 +7,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -103,6 +106,8 @@ class EditeurFormViewModel(private val editeurId: Int? = null) : ViewModel() {
 fun EditeurFormScreen(
     editeurId: Int? = null,
     onBack: () -> Unit,
+    onJeuClick: (Int) -> Unit = {},
+    onAddJeu: () -> Unit = {},
     viewModel: EditeurFormViewModel = viewModel(
         key = "editeur_form_$editeurId",
         factory = viewModelFactory { initializer { EditeurFormViewModel(editeurId) } }
@@ -164,11 +169,22 @@ fun EditeurFormScreen(
                 }
             }
 
-            if (uiState.jeux.isNotEmpty()) {
-                Text("Jeux (${uiState.jeux.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = NavyBlue)
+            if (uiState.isEditMode) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text("Jeux (${uiState.jeux.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = NavyBlue, modifier = Modifier.weight(1f))
+                    IconButton(onClick = onAddJeu) {
+                        Box(
+                            modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(BrightBlue),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Add, "Ajouter un jeu", tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+                
                 uiState.jeux.forEach { jeu ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().clickable { jeu.id?.let(onJeuClick) },
                         shape = RoundedCornerShape(10.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         elevation = CardDefaults.cardElevation(1.dp)

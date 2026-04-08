@@ -35,11 +35,12 @@ import com.example.frontend.ui.theme.NavyBlue
 @Composable
 fun JeuFormScreen(
     jeuId: Int? = null,
+    editeurId: Int? = null,
     onBack: () -> Unit,
     onSaved: () -> Unit = onBack,
     viewModel: JeuFormViewModel = viewModel(
-        key = "jeuForm_${jeuId ?: 0}",
-        factory = viewModelFactory { initializer { JeuFormViewModel(jeuId) } }
+        key = "jeuForm_${jeuId ?: 0}_${editeurId ?: 0}",
+        factory = viewModelFactory { initializer { JeuFormViewModel(jeuId, editeurId) } }
     )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

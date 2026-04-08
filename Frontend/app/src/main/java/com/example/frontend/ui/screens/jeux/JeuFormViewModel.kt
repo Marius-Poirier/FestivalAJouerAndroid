@@ -36,11 +36,14 @@ data class JeuFormUiState(
     val editeurs: List<EditeurDto> = emptyList()
 )
 
-class JeuFormViewModel(private val jeuId: Int? = null) : ViewModel() {
+class JeuFormViewModel(private val jeuId: Int? = null, private val initialEditeurId: Int? = null) : ViewModel() {
     private val jeuRepository = JeuRepository(RetrofitInstance.jeuApi, RetrofitInstance.metadataApi)
     private val editeurRepository = EditeurRepository(RetrofitInstance.editeurApi)
 
-    private val _uiState = MutableStateFlow(JeuFormUiState(isEditMode = jeuId != null))
+    private val _uiState = MutableStateFlow(JeuFormUiState(
+        isEditMode = jeuId != null,
+        selectedEditeursIds = initialEditeurId?.let { listOf(it) } ?: emptyList()
+    ))
     val uiState = _uiState.asStateFlow()
 
     init {
