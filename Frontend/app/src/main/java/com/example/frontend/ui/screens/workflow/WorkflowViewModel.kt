@@ -449,7 +449,12 @@ class WorkflowViewModel : ViewModel() {
                 val reservedIds = if (resaId != null) {
                     (_uiState.value.reservationTables[resaId] ?: emptyList()).mapNotNull { it.id }.toSet()
                 } else emptySet()
-                val free = tables.filter { it.statut == StatutTable.LIBRE && it.id !in reservedIds }
+
+                val free = tables.filter { 
+                    it.statut == StatutTable.LIBRE && 
+                    (it.nbJeuxActuels == null || it.nbJeuxActuels == 0) &&
+                    it.id !in reservedIds 
+                }
                 update { copy(tablesForResaZone = free) }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
@@ -465,6 +470,7 @@ class WorkflowViewModel : ViewModel() {
                 dismissAddResaTableDialog()
                 update { copy(reservationTables = reservationTables - resaId) }
                 loadReservationTables(resaId)
+                loadReservations()
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
@@ -477,6 +483,7 @@ class WorkflowViewModel : ViewModel() {
                 repo.removeTableFromReservation(ReservationTableRequest(resaId, tableId))
                 update { copy(reservationTables = reservationTables - resaId) }
                 loadReservationTables(resaId)
+                loadReservations()
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
