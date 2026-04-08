@@ -175,7 +175,13 @@ fun ReservationFormScreen(
     festivalId: Int,
     onBack: () -> Unit,
     viewModel: ReservationFormViewModel = viewModel(
-        key = "resa_form_${reservationId ?: "new"}_$festivalId", // Clé plus précise
+        // En création : clé unique par instance de composable → ViewModel toujours frais
+        // En édition : clé stable → ViewModel réutilisé pour garder les données chargées
+        key = if (reservationId != null) {
+            "resa_form_${reservationId}_$festivalId"
+        } else {
+            remember { "resa_form_new_${System.nanoTime()}" }
+        },
         factory = viewModelFactory {
             initializer { ReservationFormViewModel(reservationId, festivalId) }
         }
