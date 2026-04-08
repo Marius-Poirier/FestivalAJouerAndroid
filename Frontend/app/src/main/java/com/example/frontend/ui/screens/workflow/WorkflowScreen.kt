@@ -493,9 +493,9 @@ private fun ZoneTarifaireCard(
                 }
             }
             if (canManage) {
-                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, null, tint = BrightBlue, modifier = Modifier.size(16.dp))
-                }
+                //IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                    //Icon(Icons.Default.Edit, null, tint = BrightBlue, modifier = Modifier.size(16.dp))
+                //}
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Default.Delete, null, tint = Destructive, modifier = Modifier.size(16.dp))
                 }
@@ -670,9 +670,9 @@ private fun ZoneDuPlanCard(
                     Text("${zone.nombreTables} table(s)", fontSize = 11.sp, color = TextMuted)
                 }
                 if (canManageZone) {
-                    IconButton(onClick = onEditZone, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Edit, null, tint = BrightBlue, modifier = Modifier.size(15.dp))
-                    }
+                    //IconButton(onClick = onEditZone, modifier = Modifier.size(28.dp)) {
+                        //Icon(Icons.Default.Edit, null, tint = BrightBlue, modifier = Modifier.size(15.dp))
+                    //}
                     IconButton(onClick = onDeleteZone, modifier = Modifier.size(28.dp)) {
                         Icon(Icons.Default.Delete, null, tint = Destructive, modifier = Modifier.size(15.dp))
                     }

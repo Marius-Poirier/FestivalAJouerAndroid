@@ -78,8 +78,18 @@ class ReservationFormViewModel(
             update { copy(isLoading = true) }
             try {
                 val editeurs = editeurRepo.getAll()
-                update { copy(editeurs = editeurs, isLoading = false) }
-                if (reservationId != null) loadReservation(reservationId)
+                if (reservationId == null) {
+                    update { 
+                        ReservationFormUiState(
+                            editeurs = editeurs,
+                            isLoading = false,
+                            isEditMode = false
+                        )
+                    }
+                } else {
+                    update { copy(editeurs = editeurs, isLoading = false) }
+                    loadReservation(reservationId)
+                }
             } catch (e: Exception) {
                 update { copy(isLoading = false, error = e.message) }
             }
@@ -165,7 +175,7 @@ fun ReservationFormScreen(
     festivalId: Int,
     onBack: () -> Unit,
     viewModel: ReservationFormViewModel = viewModel(
-        key = "resa_form_${reservationId}_$festivalId",
+        key = "resa_form_${reservationId ?: "new"}_$festivalId", // Clé plus précise
         factory = viewModelFactory {
             initializer { ReservationFormViewModel(reservationId, festivalId) }
         }
