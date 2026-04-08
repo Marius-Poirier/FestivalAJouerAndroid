@@ -619,7 +619,7 @@ private fun ZoneDuPlanTabContent(
                         isExpanded = isExpanded,
                         tables = uiState.tablesByZone[zoneId],
                         expandedTableIds = uiState.expandedTableIds,
-                        jeusByTable = uiState.jeusByTable,
+                        jeuxByTable = uiState.jeuxByTable,
                         canManageZone = isAdminSuperorga,
                         onToggleExpand = { viewModel.toggleZonePlanExpand(zoneId) },
                         onEditZone = { viewModel.showEditZonePlan(zone) },
@@ -638,7 +638,7 @@ private fun ZoneDuPlanCard(
     isExpanded: Boolean,
     tables: List<TableJeuDto>?,
     expandedTableIds: Set<Int>,
-    jeusByTable: Map<Int, List<JeuTableDto>>,
+    jeuxByTable: Map<Int, List<JeuTableDto>>,
     canManageZone: Boolean,
     onToggleExpand: () -> Unit,
     onEditZone: () -> Unit,
@@ -695,7 +695,7 @@ private fun ZoneDuPlanCard(
                             TableRow(
                                 table = table,
                                 isExpanded = tableExpanded,
-                                jeux = jeusByTable[tableId],
+                                jeux = jeuxByTable[tableId],
                                 onToggle = { onToggleTable(tableId) }
                             )
                         }

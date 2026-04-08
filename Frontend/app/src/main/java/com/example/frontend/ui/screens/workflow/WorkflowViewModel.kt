@@ -52,7 +52,7 @@ data class WorkflowUiState(
     val expandedZonePlanIds: Set<Int> = emptySet(),
     val tablesByZone: Map<Int, List<TableJeuDto>> = emptyMap(),
     val expandedTableIds: Set<Int> = emptySet(),
-    val jeusByTable: Map<Int, List<JeuTableDto>> = emptyMap(),
+    val jeuxByTable: Map<Int, List<JeuTableDto>> = emptyMap(),
 
     // Onglet Réservations
     val reservations: List<ReservationDto> = emptyList(),
@@ -114,7 +114,7 @@ class WorkflowViewModel : ViewModel() {
                 isLoading = true,
                 error = null,
                 tablesByZone = emptyMap(),
-                jeusByTable = emptyMap(),
+                jeuxByTable = emptyMap(),
                 zonesTarifaires = emptyList(),
                 zonesDuPlan = emptyList(),
                 expandedZonePlanIds = emptySet(),
@@ -316,7 +316,7 @@ class WorkflowViewModel : ViewModel() {
             update { copy(expandedTableIds = current - tableId) }
         } else {
             update { copy(expandedTableIds = current + tableId) }
-            if (!_uiState.value.jeusByTable.containsKey(tableId)) loadJeuxForTable(tableId)
+            if (!_uiState.value.jeuxByTable.containsKey(tableId)) loadJeuxForTable(tableId)
         }
     }
 
@@ -324,7 +324,7 @@ class WorkflowViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val jeux = repo.getJeuxByTable(tableId)
-                update { copy(jeusByTable = jeusByTable + (tableId to jeux)) }
+                update { copy(jeuxByTable = jeuxByTable + (tableId to jeux)) }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
