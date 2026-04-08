@@ -1174,9 +1174,6 @@ private fun ResaTableRow(
                         Icon(Icons.Default.Add, "Assigner un jeu", tint = BrightBlue, modifier = Modifier.size(16.dp))
                     }
                 }
-                IconButton(onClick = onRemove, modifier = Modifier.size(30.dp)) {
-                    Icon(Icons.Default.Remove, "Retirer la table", tint = Destructive, modifier = Modifier.size(16.dp))
-                }
             }
         }
 
