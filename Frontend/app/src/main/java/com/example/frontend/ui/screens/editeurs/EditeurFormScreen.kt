@@ -7,10 +7,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -37,7 +40,8 @@ data class EditeurFormUiState(
     val isSuccess: Boolean = false,
     val isEditMode: Boolean = false,
     val nom: String = "",
-    val logoUrl: String = ""
+    val logoUrl: String = "",
+    val jeux: List<com.example.frontend.data.dto.JeuDto> = emptyList()
 )
 
 class EditeurFormViewModel(private val editeurId: Int? = null) : ViewModel() {
@@ -55,10 +59,12 @@ class EditeurFormViewModel(private val editeurId: Int? = null) : ViewModel() {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 val editeur = editeurRepository.getById(id)
+                val jeuxList = editeurRepository.getJeux(id)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     nom = editeur.nom,
-                    logoUrl = editeur.logoUrl ?: ""
+                    logoUrl = editeur.logoUrl ?: "",
+                    jeux = jeuxList
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
@@ -155,6 +161,49 @@ fun EditeurFormScreen(
                             focusedBorderColor = BrightBlue, focusedLabelColor = BrightBlue
                         )
                     )
+                }
+            }
+
+            if (uiState.jeux.isNotEmpty()) {
+                Text("Jeux (${uiState.jeux.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = NavyBlue)
+                uiState.jeux.forEach { jeu ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(1.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            if (jeu.urlImage != null) {
+                                coil.compose.AsyncImage(
+                                    model = jeu.urlImage,
+                                    contentDescription = jeu.nom,
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp))
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp))
+                                        .background(Color(0xFFDDE3EA)),
+                                    contentAlignment = Alignment.Center
+                                ) { Text("🎲", fontSize = 18.sp) }
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(jeu.nom, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NavyBlue)
+                                val players = when {
+                                    jeu.nbJoueursMin != null && jeu.nbJoueursMax != null -> "👥 ${jeu.nbJoueursMin}–${jeu.nbJoueursMax}"
+                                    else -> ""
+                                }
+                                val duration = jeu.dureeMinutes?.let { "⏱ ~$it min" } ?: ""
+                                val info = listOf(players, duration).filter { it.isNotEmpty() }.joinToString(" · ")
+                                if (info.isNotEmpty()) Text(info, fontSize = 10.sp, color = com.example.frontend.ui.theme.TextMuted)
+                            }
+                        }
+                    }
                 }
             }
 
