@@ -28,6 +28,7 @@ import com.example.frontend.ui.theme.NavyBlue
 val authManager = RetrofitInstance.authManager
 val LocalOnAdminClick = staticCompositionLocalOf<() -> Unit> { {} }
 val LocalOnLogoClick = staticCompositionLocalOf<() -> Unit> { {} }
+val LocalIsOffline = staticCompositionLocalOf { false }
 
 @Composable
 fun AppTopBar(
@@ -40,6 +41,7 @@ fun AppTopBar(
     val isAdmin = currentUser != null && authManager.isAdmin
     val onLogoClick = LocalOnLogoClick.current
     val onAdminClick = LocalOnAdminClick.current
+    val isOffline = LocalIsOffline.current
 
     Box(
         modifier = Modifier
@@ -67,7 +69,9 @@ fun AppTopBar(
                         .size(34.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color.White)
-                        .clickable { onLogoClick() },
+                        .then(
+                            if (!isOffline) Modifier.clickable { onLogoClick() } else Modifier
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
@@ -87,7 +91,7 @@ fun AppTopBar(
                 modifier = Modifier.weight(1f)
             )
 
-            if (isAdmin) {
+            if (isAdmin && !isOffline) {
                 IconButton(
                     onClick = onAdminClick,
                     modifier = Modifier.size(36.dp)
