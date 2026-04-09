@@ -1,0 +1,14 @@
+package com.example.frontend.ui.utils
+
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+/**
+ * Retourne true si une connexion internet est disponible, false sinon.
+ */
+fun isNetworkAvailable(context: Context): Boolean {
+    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = cm.activeNetwork ?: return false
+    val caps = cm.getNetworkCapabilities(network) ?: return false
+    return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+}

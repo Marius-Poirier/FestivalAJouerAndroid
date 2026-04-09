@@ -1,12 +1,17 @@
 package com.example.frontend.ui.screens.workflow
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import com.example.frontend.ui.utils.isNetworkAvailable
 import androidx.lifecycle.viewModelScope
+import com.example.frontend.FestivalApp
 import com.example.frontend.core.auth.AuthManager
 import com.example.frontend.core.network.RetrofitInstance
 import com.example.frontend.data.dto.*
 import com.example.frontend.data.repository.EditeurRepository
+import com.example.frontend.data.repository.OfflineWorkflowRepository
 import com.example.frontend.data.repository.WorkflowRepository
+import com.example.frontend.ui.utils.isNetworkAvailable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -22,6 +27,9 @@ enum class WorkflowTab(val label: String) {
 data class WorkflowUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
+
+    // true quand l'appareil n'a pas de connexion réseau
+    val isOffline: Boolean = false,
 
     // Festival selector
     val festivals: List<FestivalDto> = emptyList(),
@@ -76,10 +84,17 @@ data class WorkflowUiState(
     val resaIdForJeuTableDialog: Int? = null
 )
 
-class WorkflowViewModel : ViewModel() {
+// ── AndroidViewModel reçoit l'Application en paramètre ────────────────────────
+// C'est la seule différence avec ViewModel() : on peut accéder à applicationContext.
+class WorkflowViewModel(application: Application) : AndroidViewModel(application) {
+
     private val repo = WorkflowRepository(RetrofitInstance.workflowApi)
     private val editeurRepo = EditeurRepository(RetrofitInstance.editeurApi)
     val authManager: AuthManager = RetrofitInstance.authManager
+
+    // Le repository hors-ligne, récupéré depuis FestivalApp (initialisé en Step 7)
+    private val offlineRepo: OfflineWorkflowRepository =
+        (application as FestivalApp).offlineRepository
 
     private val _uiState = MutableStateFlow(WorkflowUiState())
     val uiState = _uiState.asStateFlow()
@@ -92,8 +107,26 @@ class WorkflowViewModel : ViewModel() {
         loadFestivals()
     }
 
+    // ── Chargement des festivals ───────────────────────────────────────────────
+
     fun loadFestivals() {
         viewModelScope.launch {
+            val offline = !isNetworkAvailable(getApplication())
+            update { copy(isOffline = offline) }
+            //mode hors ligne
+            if (offline) {
+                // Mode hors-ligne : on essaie de charger le dernier festival mis en cache
+                val cachedFestival = offlineRepo.getCachedFestival()
+                if (cachedFestival != null) {
+                    update { copy(festivals = listOf(cachedFestival)) }
+                    cachedFestival.id?.let { selectFestival(it) }
+                } else {
+                    update { copy(error = "Aucune donnée hors-ligne disponible. Connectez-vous une première fois.") }
+                }
+                return@launch
+            }
+
+            // Mode en ligne
             try {
                 val festivals = repo.getFestivals()
                 update { copy(festivals = festivals) }
@@ -106,6 +139,8 @@ class WorkflowViewModel : ViewModel() {
             }
         }
     }
+
+    // ── Sélection d'un festival ────────────────────────────────────────────────
 
     fun selectFestival(id: Int) {
         update {
@@ -126,11 +161,39 @@ class WorkflowViewModel : ViewModel() {
                 resaTableJeux = emptyMap()
             )
         }
+
+        if (_uiState.value.isOffline) {
+            // ── hors-ligne : lire depuis Room ───────────────────────
+            viewModelScope.launch {
+                try {
+                    val editeurs     = offlineRepo.getEditeurs(festivalId = id)
+                    val reservations = offlineRepo.getReservations(festivalId = id)
+                    val jeux         = offlineRepo.getJeuxFestival(festivalId = id)
+                    val reservationByEditeur = reservations
+                        .filter { it.id != null }
+                        .associateBy { it.editeurId }
+                    update {
+                        copy(
+                            isLoading = false,
+                            editeurs = editeurs,
+                            jeuxFestival = jeux,
+                            reservations = reservations,
+                            reservationByEditeur = reservationByEditeur
+                        )
+                    }
+                } catch (e: Exception) {
+                    update { copy(isLoading = false, error = e.message) }
+                }
+            }
+            return
+        }
+
+        // ── Chemin en ligne 
         viewModelScope.launch {
             try {
-                val editeurs = editeurRepo.getAll()
+                val editeurs     = editeurRepo.getAll()
                 val reservations = repo.getReservations(id)
-                val jeux = repo.getJeuFestivalView(id)
+                val jeux         = repo.getJeuFestivalView(id)
                 val reservationByEditeur = reservations
                     .filter { it.id != null }
                     .associateBy { it.editeurId }
@@ -143,7 +206,14 @@ class WorkflowViewModel : ViewModel() {
                         reservationByEditeur = reservationByEditeur
                     )
                 }
-                // reload tab-specific data if already on those tabs
+
+                // On sauvegarde tout en arrière-plan
+                val festival = _uiState.value.festivals.firstOrNull { it.id == id }
+                if (festival != null) {
+                    saveWorkflowToRoom(id, festival, editeurs, reservations, jeux)
+                }
+
+                // Rechargement si on est déjà sur un onglet qui en a besoin
                 val tab = _uiState.value.activeTab
                 if (tab == WorkflowTab.ZONE_TARIFAIRE) loadZonesTarifaires(id)
                 if (tab == WorkflowTab.ZONE_DU_PLAN) {
@@ -153,6 +223,62 @@ class WorkflowViewModel : ViewModel() {
             } catch (e: Exception) {
                 update { copy(isLoading = false, error = e.message) }
             }
+        }
+    }
+
+    /**
+     * Récupère TOUTES les données du workflow du festival et les sauvegarde dans Room.
+     * Appelé en arrière-plan après que les données principales ont été affichées.
+     * On charge tout
+     */
+    private suspend fun saveWorkflowToRoom(
+        festivalId: Int,
+        festival: FestivalDto,
+        editeurs: List<EditeurDto>,
+        reservations: List<ReservationDto>,
+        jeux: List<JeuFestivalViewDto>
+    ) {
+        try {
+            // Données des onglets non encore chargés
+            val zonesTarifaires = repo.getZonesTarifaires(festivalId)
+            val zonesDuPlan     = repo.getZonesDuPlan(festivalId)
+
+            // Pour chaque zone → ses tables → les jeux sur chaque table
+            val tablesByZone = mutableMapOf<Int, List<TableJeuDto>>()
+            val jeusByTable  = mutableMapOf<Int, List<JeuTableDto>>()
+
+            zonesDuPlan.forEach { zone ->
+                val zoneId = zone.id ?: return@forEach
+                val tables = repo.getTables(zoneId)
+                tablesByZone[zoneId] = tables
+
+                tables.forEach { table ->
+                    val tableId = table.id ?: return@forEach
+                    jeusByTable[tableId] = repo.getJeuxByTable(tableId)
+                }
+            }
+
+            // Pour chaque réservation → ses tables
+            val reservationTables = mutableMapOf<Int, List<TableJeuDto>>()
+            reservations.forEach { resa ->
+                val resaId = resa.id ?: return@forEach
+                reservationTables[resaId] = repo.getReservationTables(resaId)
+            }
+
+            // Sauvegarde dans Room
+            offlineRepo.saveAll(
+                festival          = festival,
+                editeurs          = editeurs,
+                reservations      = reservations,
+                jeuxFestival      = jeux,
+                zonesTarifaires   = zonesTarifaires,
+                zonesDuPlan       = zonesDuPlan,
+                tablesByZone      = tablesByZone,
+                jeusByTable       = jeusByTable,
+                reservationTables = reservationTables
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("OfflineCache", "Erreur lors de la sauvegarde hors-ligne : ${e.message}")
         }
     }
 
@@ -185,7 +311,11 @@ class WorkflowViewModel : ViewModel() {
     private fun loadZonesTarifaires(festivalId: Int) {
         viewModelScope.launch {
             try {
-                val zones = repo.getZonesTarifaires(festivalId)
+                val zones = if (_uiState.value.isOffline) {
+                    offlineRepo.getZonesTarifaires(festivalId)
+                } else {
+                    repo.getZonesTarifaires(festivalId)
+                }
                 update { copy(zonesTarifaires = zones) }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
@@ -230,7 +360,11 @@ class WorkflowViewModel : ViewModel() {
     private fun loadZonesDuPlan(festivalId: Int) {
         viewModelScope.launch {
             try {
-                val zones = repo.getZonesDuPlan(festivalId)
+                val zones = if (_uiState.value.isOffline) {
+                    offlineRepo.getZonesDuPlan(festivalId)
+                } else {
+                    repo.getZonesDuPlan(festivalId)
+                }
                 update { copy(zonesDuPlan = zones) }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
@@ -302,7 +436,11 @@ class WorkflowViewModel : ViewModel() {
     private fun loadTablesForZone(zoneId: Int) {
         viewModelScope.launch {
             try {
-                val tables = repo.getTables(zoneId)
+                val tables = if (_uiState.value.isOffline) {
+                    offlineRepo.getTablesByZone(zoneId)
+                } else {
+                    repo.getTables(zoneId)
+                }
                 update { copy(tablesByZone = tablesByZone + (zoneId to tables)) }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
@@ -323,8 +461,13 @@ class WorkflowViewModel : ViewModel() {
     private fun loadJeuxForTable(tableId: Int) {
         viewModelScope.launch {
             try {
-                val jeux = repo.getJeuxByTable(tableId)
-                update { copy(jeuxByTable = jeuxByTable + (tableId to jeux)) }
+                val jeux = if (_uiState.value.isOffline) {
+                    offlineRepo.getJeuxByTable(tableId)
+                } else {
+                    repo.getJeuxByTable(tableId)
+                }
+                update { copy(jeusByTable = jeusByTable + (tableId to jeux)) }
+
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
@@ -339,7 +482,11 @@ class WorkflowViewModel : ViewModel() {
         val festivalId = _uiState.value.selectedFestivalId ?: return
         viewModelScope.launch {
             try {
-                val reservations = repo.getReservations(festivalId)
+                val reservations = if (_uiState.value.isOffline) {
+                    offlineRepo.getReservations(festivalId)
+                } else {
+                    repo.getReservations(festivalId)
+                }
                 val reservationByEditeur = reservations.filter { it.id != null }.associateBy { it.editeurId }
                 update { copy(reservations = reservations, reservationByEditeur = reservationByEditeur) }
             } catch (e: Exception) {
@@ -377,7 +524,11 @@ class WorkflowViewModel : ViewModel() {
         val festivalId = _uiState.value.selectedFestivalId ?: return
         viewModelScope.launch {
             try {
-                val jeux = repo.getJeuFestivalView(festivalId, resaId)
+                val jeux = if (_uiState.value.isOffline) {
+                    offlineRepo.getJeuxByReservation(resaId)
+                } else {
+                    repo.getJeuFestivalView(festivalId, resaId)
+                }
                 update { copy(reservationJeux = reservationJeux + (resaId to jeux)) }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
@@ -388,7 +539,11 @@ class WorkflowViewModel : ViewModel() {
     private fun loadReservationTables(resaId: Int) {
         viewModelScope.launch {
             try {
-                val tables = repo.getReservationTables(resaId)
+                val tables = if (_uiState.value.isOffline) {
+                    offlineRepo.getReservationTables(resaId)
+                } else {
+                    repo.getReservationTables(resaId)
+                }
                 update { copy(reservationTables = reservationTables + (resaId to tables)) }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
@@ -409,7 +564,11 @@ class WorkflowViewModel : ViewModel() {
     private fun loadResaTableJeux(tableId: Int) {
         viewModelScope.launch {
             try {
-                val jeux = repo.getJeuxByTable(tableId)
+                val jeux = if (_uiState.value.isOffline) {
+                    offlineRepo.getJeuxByTable(tableId)
+                } else {
+                    repo.getJeuxByTable(tableId)
+                }
                 update { copy(resaTableJeux = resaTableJeux + (tableId to jeux)) }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
@@ -572,7 +731,6 @@ class WorkflowViewModel : ViewModel() {
                 editeurJeuxForDialog = emptyList()
             )
         }
-        // Charger tous les jeux de l'éditeur pour ce dialog
         viewModelScope.launch {
             try {
                 val jeux = editeurRepo.getJeux(resa.editeurId)
@@ -581,11 +739,9 @@ class WorkflowViewModel : ViewModel() {
                 update { copy(error = e.message) }
             }
         }
-        // Charger les jeux déjà sur la table si pas en cache
         table.id?.let { tableId ->
             if (!_uiState.value.resaTableJeux.containsKey(tableId)) loadResaTableJeux(tableId)
         }
-        // Charger les jeux déjà dans la réservation si pas en cache
         if (!_uiState.value.reservationJeux.containsKey(resaId)) loadReservationJeux(resaId)
     }
 
@@ -598,17 +754,14 @@ class WorkflowViewModel : ViewModel() {
         )
     }
 
-    // jeuId = ID du jeu (JeuDto.id), pas jeuFestivalId
     fun assignJeuToResaTable(jeuId: Int, tableId: Int) {
         val resaId = _uiState.value.resaIdForJeuTableDialog ?: return
         val festivalId = _uiState.value.selectedFestivalId ?: return
         viewModelScope.launch {
             try {
-                // Trouver si le jeu est déjà dans la réservation
                 var jeuFestivalId = (_uiState.value.reservationJeux[resaId] ?: emptyList())
                     .firstOrNull { it.jeuId == jeuId }?.id
                 if (jeuFestivalId == null) {
-                    // Ajouter le jeu à la réservation en premier
                     repo.addJeuFestival(AddJeuFestivalRequest(jeuId, resaId, festivalId, false, false, false))
                     val refreshed = repo.getJeuFestivalView(festivalId, resaId)
                     update { copy(reservationJeux = reservationJeux + (resaId to refreshed)) }

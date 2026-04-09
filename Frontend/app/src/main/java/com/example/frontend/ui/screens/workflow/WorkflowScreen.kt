@@ -120,6 +120,9 @@ fun WorkflowScreen(
     val isAdminSuperorga = viewModel.authManager.isAdminSuperorga
     val isOrganisateurPlus = viewModel.authManager.isAdminSuperorgaOrga
 
+    // En mode hors-ligne, lecture seul du workflow 
+    val canWrite = !uiState.isOffline
+
     val visibleTabs = remember(isAdminSuperorga) {
         if (isAdminSuperorga) WorkflowTab.entries.toList()
         else listOf(WorkflowTab.EDITEUR, WorkflowTab.JEUX, WorkflowTab.RESERVATIONS)
@@ -163,6 +166,11 @@ fun WorkflowScreen(
             return@Column
         }
 
+        // Bannière hors-ligne — toujours visible si pas de connexion
+        if (uiState.isOffline) {
+            OfflineBanner()
+        }
+
         if (uiState.error != null) {
             ErrorBanner(uiState.error!!, modifier = Modifier.padding(16.dp))
         }
@@ -175,10 +183,11 @@ fun WorkflowScreen(
         when (uiState.activeTab) {
             WorkflowTab.EDITEUR -> EditeurTabContent(uiState, viewModel)
             WorkflowTab.JEUX -> JeuxTabContent(uiState, viewModel)
-            WorkflowTab.ZONE_TARIFAIRE -> ZoneTarifaireTabContent(uiState, viewModel, isAdminSuperorga)
-            WorkflowTab.ZONE_DU_PLAN -> ZoneDuPlanTabContent(uiState, viewModel, isAdminSuperorga)
+
+            WorkflowTab.ZONE_TARIFAIRE -> ZoneTarifaireTabContent(uiState, viewModel, isAdminSuperorga && canWrite)
+            WorkflowTab.ZONE_DU_PLAN -> ZoneDuPlanTabContent(uiState, viewModel, isAdminSuperorga && canWrite)
             WorkflowTab.RESERVATIONS -> ReservationsTabContent(
-                uiState, viewModel, isOrganisateurPlus,
+                uiState, viewModel, isOrganisateurPlus && canWrite,
                 onEditReservation = { resaId ->
                     onEditReservation(resaId, uiState.selectedFestivalId ?: 0)
                 },
@@ -188,7 +197,41 @@ fun WorkflowScreen(
     }
 }
 
+// ── Offline Banner 
+@Composable
+private fun OfflineBanner() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFFF3CD))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.WifiOff,
+            contentDescription = null,
+            tint = Color(0xFF856404),
+            modifier = Modifier.size(18.dp)
+        )
+        Column {
+            Text(
+                text = "Mode hors-ligne",
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = Color(0xFF856404)
+            )
+            Text(
+                text = "Données du dernier festival consulté — consultation uniquement",
+                fontSize = 11.sp,
+                color = Color(0xFF856404)
+            )
+        }
+    }
+}
+
 // ── Festival Selector ─────────────────────────────────────────────────────────
+
 
 @Composable
 private fun FestivalSelector(

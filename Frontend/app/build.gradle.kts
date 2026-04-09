@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp) 
 }
 
 android {
@@ -72,4 +73,9 @@ dependencies {
 
     //DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // Room (base de données locale pour le mode hors-ligne)
+    implementation(libs.room.runtime)   // cœur de Room
+    implementation(libs.room.ktx)       // support coroutines (Flow, suspend)
+    ksp(libs.room.compiler)             // génère le code SQL à la compilation
 }
