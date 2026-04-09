@@ -245,7 +245,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
 
             // Pour chaque zone → ses tables → les jeux sur chaque table
             val tablesByZone = mutableMapOf<Int, List<TableJeuDto>>()
-            val jeusByTable  = mutableMapOf<Int, List<JeuTableDto>>()
+            val jeuxByTable  = mutableMapOf<Int, List<JeuTableDto>>()
 
             zonesDuPlan.forEach { zone ->
                 val zoneId = zone.id ?: return@forEach
@@ -254,7 +254,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
 
                 tables.forEach { table ->
                     val tableId = table.id ?: return@forEach
-                    jeusByTable[tableId] = repo.getJeuxByTable(tableId)
+                    jeuxByTable[tableId] = repo.getJeuxByTable(tableId)
                 }
             }
 
@@ -274,7 +274,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                 zonesTarifaires   = zonesTarifaires,
                 zonesDuPlan       = zonesDuPlan,
                 tablesByZone      = tablesByZone,
-                jeusByTable       = jeusByTable,
+                jeuxByTable       = jeuxByTable,
                 reservationTables = reservationTables
             )
         } catch (e: Exception) {
@@ -466,7 +466,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                 } else {
                     repo.getJeuxByTable(tableId)
                 }
-                update { copy(jeusByTable = jeusByTable + (tableId to jeux)) }
+                update { copy(jeuxByTable = jeuxByTable + (tableId to jeux)) }
 
             } catch (e: Exception) {
                 update { copy(error = e.message) }
