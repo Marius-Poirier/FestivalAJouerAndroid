@@ -536,9 +536,9 @@ private fun ZoneTarifaireCard(
                 }
             }
             if (canManage) {
-                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, null, tint = BrightBlue, modifier = Modifier.size(16.dp))
-                }
+                //IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                    //Icon(Icons.Default.Edit, null, tint = BrightBlue, modifier = Modifier.size(16.dp))
+                //}
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Default.Delete, null, tint = Destructive, modifier = Modifier.size(16.dp))
                 }
@@ -662,7 +662,7 @@ private fun ZoneDuPlanTabContent(
                         isExpanded = isExpanded,
                         tables = uiState.tablesByZone[zoneId],
                         expandedTableIds = uiState.expandedTableIds,
-                        jeusByTable = uiState.jeusByTable,
+                        jeuxByTable = uiState.jeuxByTable,
                         canManageZone = isAdminSuperorga,
                         onToggleExpand = { viewModel.toggleZonePlanExpand(zoneId) },
                         onEditZone = { viewModel.showEditZonePlan(zone) },
@@ -681,7 +681,7 @@ private fun ZoneDuPlanCard(
     isExpanded: Boolean,
     tables: List<TableJeuDto>?,
     expandedTableIds: Set<Int>,
-    jeusByTable: Map<Int, List<JeuTableDto>>,
+    jeuxByTable: Map<Int, List<JeuTableDto>>,
     canManageZone: Boolean,
     onToggleExpand: () -> Unit,
     onEditZone: () -> Unit,
@@ -713,9 +713,9 @@ private fun ZoneDuPlanCard(
                     Text("${zone.nombreTables} table(s)", fontSize = 11.sp, color = TextMuted)
                 }
                 if (canManageZone) {
-                    IconButton(onClick = onEditZone, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Edit, null, tint = BrightBlue, modifier = Modifier.size(15.dp))
-                    }
+                    //IconButton(onClick = onEditZone, modifier = Modifier.size(28.dp)) {
+                        //Icon(Icons.Default.Edit, null, tint = BrightBlue, modifier = Modifier.size(15.dp))
+                    //}
                     IconButton(onClick = onDeleteZone, modifier = Modifier.size(28.dp)) {
                         Icon(Icons.Default.Delete, null, tint = Destructive, modifier = Modifier.size(15.dp))
                     }
@@ -738,7 +738,7 @@ private fun ZoneDuPlanCard(
                             TableRow(
                                 table = table,
                                 isExpanded = tableExpanded,
-                                jeux = jeusByTable[tableId],
+                                jeux = jeuxByTable[tableId],
                                 onToggle = { onToggleTable(tableId) }
                             )
                         }
@@ -1216,9 +1216,6 @@ private fun ResaTableRow(
                     IconButton(onClick = onAssignJeu, modifier = Modifier.size(30.dp)) {
                         Icon(Icons.Default.Add, "Assigner un jeu", tint = BrightBlue, modifier = Modifier.size(16.dp))
                     }
-                }
-                IconButton(onClick = onRemove, modifier = Modifier.size(30.dp)) {
-                    Icon(Icons.Default.Remove, "Retirer la table", tint = Destructive, modifier = Modifier.size(16.dp))
                 }
             }
         }

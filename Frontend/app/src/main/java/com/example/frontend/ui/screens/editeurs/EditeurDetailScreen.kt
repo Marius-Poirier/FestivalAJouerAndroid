@@ -41,7 +41,7 @@ fun EditeurDetailScreen(
     )
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val canManage = viewModel.authManager.isAdminSuperorga
+    val canManage = viewModel.authManager.isAdminSuperorgaOrga
     val canSeeContacts = viewModel.authManager.isAdminSuperorgaOrga
     var showDeleteDialog by remember { mutableStateOf(false) }
 

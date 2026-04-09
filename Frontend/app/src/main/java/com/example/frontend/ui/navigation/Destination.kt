@@ -22,7 +22,7 @@ import kotlinx.serialization.Serializable
 
 // ── Routes avec paramètres ────────────────────────
 @Serializable data class JeuDetail(val jeuId: Int)
-@Serializable data class JeuForm(val jeuId: Int = 0) // 0 = création
+@Serializable data class JeuForm(val jeuId: Int = 0, val editeurId: Int? = null) // 0 = création
 @Serializable data class FestivalForm(val festivalId: Int? = null)
 @Serializable data class EditeurDetail(val editeurId: Int)
 @Serializable data class EditeurForm(val editeurId: Int = 0) // 0 = création

@@ -60,7 +60,7 @@ data class WorkflowUiState(
     val expandedZonePlanIds: Set<Int> = emptySet(),
     val tablesByZone: Map<Int, List<TableJeuDto>> = emptyMap(),
     val expandedTableIds: Set<Int> = emptySet(),
-    val jeusByTable: Map<Int, List<JeuTableDto>> = emptyMap(),
+    val jeuxByTable: Map<Int, List<JeuTableDto>> = emptyMap(),
 
     // Onglet Réservations
     val reservations: List<ReservationDto> = emptyList(),
@@ -149,7 +149,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                 isLoading = true,
                 error = null,
                 tablesByZone = emptyMap(),
-                jeusByTable = emptyMap(),
+                jeuxByTable = emptyMap(),
                 zonesTarifaires = emptyList(),
                 zonesDuPlan = emptyList(),
                 expandedZonePlanIds = emptySet(),
@@ -454,7 +454,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
             update { copy(expandedTableIds = current - tableId) }
         } else {
             update { copy(expandedTableIds = current + tableId) }
-            if (!_uiState.value.jeusByTable.containsKey(tableId)) loadJeuxForTable(tableId)
+            if (!_uiState.value.jeuxByTable.containsKey(tableId)) loadJeuxForTable(tableId)
         }
     }
 
@@ -467,6 +467,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                     repo.getJeuxByTable(tableId)
                 }
                 update { copy(jeusByTable = jeusByTable + (tableId to jeux)) }
+
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
@@ -607,7 +608,12 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                 val reservedIds = if (resaId != null) {
                     (_uiState.value.reservationTables[resaId] ?: emptyList()).mapNotNull { it.id }.toSet()
                 } else emptySet()
-                val free = tables.filter { it.statut == StatutTable.LIBRE && it.id !in reservedIds }
+
+                val free = tables.filter { 
+                    it.statut == StatutTable.LIBRE && 
+                    (it.nbJeuxActuels == null || it.nbJeuxActuels == 0) &&
+                    it.id !in reservedIds 
+                }
                 update { copy(tablesForResaZone = free) }
             } catch (e: Exception) {
                 update { copy(error = e.message) }
@@ -621,8 +627,11 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
             try {
                 repo.addTableToReservation(ReservationTableRequest(resaId, tableId))
                 dismissAddResaTableDialog()
-                update { copy(reservationTables = reservationTables - resaId) }
-                loadReservationTables(resaId)
+                val tables = repo.getReservationTables(resaId)
+                update { copy(reservationTables = reservationTables + (resaId to tables)) }
+                // Le backend ne met pas statut=RESERVE : on patche en local après le reload
+                patchTableStatut(tableId, 0)
+                loadReservations()
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
@@ -633,8 +642,12 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try {
                 repo.removeTableFromReservation(ReservationTableRequest(resaId, tableId))
-                update { copy(reservationTables = reservationTables - resaId) }
-                loadReservationTables(resaId)
+                val tables = repo.getReservationTables(resaId)
+                update { copy(reservationTables = reservationTables + (resaId to tables)) }
+                // Le backend supprime aussi les JeuFestivalTable → 0 jeux sur la table
+                // isReserved sera false (table plus dans reservationTables) → statut LIBRE
+                patchTableStatut(tableId, 0)
+                loadReservations()
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
@@ -740,28 +753,61 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                 }
                 repo.assignJeuToTable(JeuFestivalTableRequest(jeuFestivalId, tableId))
                 dismissAssignJeuToResaTableDialog()
-                update { copy(resaTableJeux = resaTableJeux - tableId) }
-                loadResaTableJeux(tableId)
-                update { copy(reservationTables = reservationTables - resaId) }
-                loadReservationTables(resaId)
+                val actualJeux = repo.getJeuxByTable(tableId)
+                update { copy(resaTableJeux = resaTableJeux + (tableId to actualJeux)) }
+                val tables = repo.getReservationTables(resaId)
+                update { copy(reservationTables = reservationTables + (resaId to tables)) }
+                patchTableStatut(tableId, actualJeux.size)
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }
         }
     }
 
-    fun removeJeuFromResaTable(jeuFestivalId: Int, tableId: Int) {
+    private fun patchTableStatut(tableId: Int, jeuxCount: Int) {
+        val isReserved = _uiState.value.reservationTables.values.any { tables ->
+            tables.any { it.id == tableId }
+        }
+        update {
+            val updater = { table: TableJeuDto ->
+                if (table.id == tableId) {
+                    val cap = table.capaciteJeux ?: 2
+                    val newStatut = when {
+                        isReserved && jeuxCount >= cap -> StatutTable.PLEIN
+                        isReserved -> StatutTable.RESERVE
+                        else -> StatutTable.LIBRE
+                    }
+                    table.copy(nbJeuxActuels = jeuxCount, statut = newStatut)
+                } else table
+            }
+            copy(
+                tablesByZone = tablesByZone.mapValues { (_, tables) -> tables.map(updater) },
+                reservationTables = reservationTables.mapValues { (_, tables) -> tables.map(updater) }
+            )
+        }
+    }
+
+    fun removeJeuFromResaTable(jeuId: Int, tableId: Int) {
         val resaId = _uiState.value.reservationTables.entries
             .firstOrNull { (_, tables) -> tables.any { it.id == tableId } }?.key
         viewModelScope.launch {
             try {
-                repo.removeJeuFromTable(JeuFestivalTableRequest(jeuFestivalId, tableId))
-                update { copy(resaTableJeux = resaTableJeux - tableId) }
-                loadResaTableJeux(tableId)
-                if (resaId != null) {
-                    update { copy(reservationTables = reservationTables - resaId) }
-                    loadReservationTables(resaId)
+                val jeuFestivalId = if (resaId != null) {
+                    (_uiState.value.reservationJeux[resaId] ?: emptyList())
+                        .firstOrNull { it.jeuId == jeuId }?.id
+                } else null
+                if (jeuFestivalId == null) {
+                    update { copy(error = "Impossible de retrouver l'association jeu-festival") }
+                    return@launch
                 }
+                repo.removeJeuFromTable(JeuFestivalTableRequest(jeuFestivalId, tableId))
+                val actualJeux = repo.getJeuxByTable(tableId)
+                update { copy(resaTableJeux = resaTableJeux + (tableId to actualJeux)) }
+                if (resaId != null) {
+                    val tables = repo.getReservationTables(resaId)
+                    update { copy(reservationTables = reservationTables + (resaId to tables)) }
+                }
+                patchTableStatut(tableId, actualJeux.size)
             } catch (e: Exception) {
                 update { copy(error = e.message) }
             }

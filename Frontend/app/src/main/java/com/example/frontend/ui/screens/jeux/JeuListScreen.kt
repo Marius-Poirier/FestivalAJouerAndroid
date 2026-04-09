@@ -75,22 +75,7 @@ fun JeuListScreen(
                 Text("${uiState.filteredJeux.size} jeu(x)", fontSize = 10.sp, color = TextMuted)
             }
             if (canManage) {
-                IconButton(onClick = onAddJeu) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(BrightBlue),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Ajouter un jeu",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
+                FabAdd(onClick = onAddJeu)
             }
         }
 

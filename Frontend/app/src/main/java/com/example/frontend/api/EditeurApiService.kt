@@ -20,13 +20,13 @@ interface EditeurApiService {
     suspend fun getEditeur(@Path("id") id: Int): EditeurDto
 
     @POST("editeurs")
-    suspend fun createEditeur(@Body request: CreateEditeurRequest): Response<Map<String, Any>>
+    suspend fun createEditeur(@Body request: CreateEditeurRequest): Response<EditeurDto>
 
     @PUT("editeurs/{id}")
     suspend fun updateEditeur(
         @Path("id") id: Int,
         @Body request: CreateEditeurRequest
-    ): Response<Map<String, Any>>
+    ): Response<EditeurDto>
 
     @DELETE("editeurs/{id}")
     suspend fun deleteEditeur(@Path("id") id: Int): Response<Unit>
