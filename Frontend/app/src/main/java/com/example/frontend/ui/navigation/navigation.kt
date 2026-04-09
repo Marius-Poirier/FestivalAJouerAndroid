@@ -16,6 +16,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.example.frontend.ui.components.AppTopBar
 import com.example.frontend.ui.components.BottomNavBar
+import com.example.frontend.ui.components.LocalIsOffline
 import com.example.frontend.ui.components.LocalOnAdminClick
 import com.example.frontend.ui.components.LocalOnLogoClick
 import com.example.frontend.ui.screens.auth.LoginScreen
@@ -31,14 +32,19 @@ import com.example.frontend.ui.screens.jeux.JeuFormScreen
 import com.example.frontend.ui.screens.jeux.JeuListScreen
 
 import com.example.frontend.core.network.RetrofitInstance
+import com.example.frontend.FestivalApp
+import com.example.frontend.data.dto.UserMeResponse
 import com.example.frontend.ui.theme.BrightBlue
 import kotlinx.coroutines.launch
+
+import androidx.compose.ui.platform.LocalContext
 import com.example.frontend.ui.screens.editeurs.EditeurDetailScreen
 import com.example.frontend.ui.screens.editeurs.EditeurFormScreen
 import com.example.frontend.ui.screens.editeurs.EditeurListScreen
 import com.example.frontend.ui.screens.admin.AdminScreen
 import com.example.frontend.ui.screens.workflow.ReservationFormScreen
 import com.example.frontend.ui.screens.workflow.WorkflowScreen
+import com.example.frontend.ui.utils.isNetworkAvailable
 
 
 // Destinations qui affichent la BottomNavBar
@@ -49,7 +55,6 @@ private val bottomNavDestinations = setOf(
     EditeurList::class,
     Workflow::class
 )
-
 @Composable
 fun AppNavGraph() {
 
@@ -59,8 +64,16 @@ fun AppNavGraph() {
     val dataStore = RetrofitInstance.userPreferencesDataStore
     val authManager = RetrofitInstance.authManager
 
+    //verification si offline
+    val isOffline = !isNetworkAvailable(LocalContext.current)
+
+    // ── Navigation ───────────────────────────────────────
+
 
     val backStack = remember { mutableStateListOf<Any>(Login) }
+
+    // Nécessaire pour vérifier l'état réseau dans LaunchedEffect
+    val context = LocalContext.current
 
     val festivalListViewModel: FestivalListViewModel = viewModel()
 
@@ -79,7 +92,6 @@ fun AppNavGraph() {
                     // 1. Restaure les cookies depuis le disque
                     val savedCookies = dataStore.getSavedCookies()
                     val host = "api.mxrjup.fun"
-
                     val cookies = savedCookies.map { (name, value, expiresAt) ->
                         okhttp3.Cookie.Builder()
                             .name(name)
@@ -90,15 +102,48 @@ fun AppNavGraph() {
                     }
                     RetrofitInstance.cookieJar.restoreCookies(host, cookies)
 
-                    // 2. Vérifie la session auprès du backend
-                    val ok = authManager.whoami()
-                    if (ok) {
-                        android.util.Log.d("SESSION", "Session restaurée : ${prefs.email} / ${prefs.role}")
-                        backStack.add(Home)
+                    if (isNetworkAvailable(context)) {
+                        // ── En ligne : vérifier la session auprès du backend ──
+                        val ok = authManager.whoami()
+                        if (ok) {
+                            android.util.Log.d("SESSION", "Session restaurée : ${prefs.email} / ${prefs.role}")
+                            backStack.add(Home)
+                        } else {
+                            // Cookie réellement expiré → nettoyer et redemander le login
+                            android.util.Log.d("SESSION", "Cookie expiré → Login")
+                            dataStore.clearUser()
+                            backStack.add(Login)
+                        }
                     } else {
-                        android.util.Log.d("SESSION", "Cookie expiré → Login")
-                        dataStore.clearUser()
-                        backStack.add(Login)
+                        // ── Hors-ligne
+                        // On NE appelle PAS whoami() — cela évite de détruire la session.
+                        android.util.Log.d("SESSION", "Hors-ligne, session conservée pour ${prefs.email}")
+
+                        // Reconstruire un UserMeResponse depuis les prefs stockées,
+                        // pour que les contrôles de rôle (isAdminSuperorga, etc.) fonctionnent.
+                        authManager.setUser(
+                            UserMeResponse(
+                                id = 0,
+                                email = prefs.email,
+                                role = prefs.role,
+                                statut = prefs.statut,
+                                dateDemande = null,
+                                emailBloque = null,
+                                createdAt = null
+                            )
+                        )
+
+                        // Si des données sont en cache → aller directement au Workflow
+                        val offlineRepo = (context.applicationContext as FestivalApp).offlineRepository
+                        if (offlineRepo.hasCachedData()) {
+                            android.util.Log.d("SESSION", "Données en cache → Workflow")
+                            backStack.clear()
+                            backStack.add(Workflow)
+                        } else {
+                            // Connecté mais pas de cache → Home (WorkflowViewModel gérera l'état offline)
+                            android.util.Log.d("SESSION", "Pas de cache → Home")
+                            backStack.add(Home)
+                        }
                     }
                 } else {
                     android.util.Log.d("SESSION", "Aucune session → Login")
@@ -125,6 +170,7 @@ fun AppNavGraph() {
             if (showBottomNav) {
                 BottomNavBar(
                     currentDestination = currentDestination,
+                    isOffline = isOffline,
                     onTabSelected = { destination ->
                         // Évite les doublons dans la backStack
                         if (currentDestination?.let { it::class != destination::class } == true) {
@@ -136,6 +182,7 @@ fun AppNavGraph() {
         }
     ) { innerPadding ->
         CompositionLocalProvider(
+            LocalIsOffline provides isOffline,
             LocalOnLogoClick provides {
                 backStack.clear()
                 backStack.add(Home)
