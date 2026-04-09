@@ -245,7 +245,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
 
             // Pour chaque zone → ses tables → les jeux sur chaque table
             val tablesByZone = mutableMapOf<Int, List<TableJeuDto>>()
-            val jeusByTable  = mutableMapOf<Int, List<JeuTableDto>>()
+            val jeuxByTable  = mutableMapOf<Int, List<JeuTableDto>>()
 
             zonesDuPlan.forEach { zone ->
                 val zoneId = zone.id ?: return@forEach
@@ -254,7 +254,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
 
                 tables.forEach { table ->
                     val tableId = table.id ?: return@forEach
-                    jeusByTable[tableId] = repo.getJeuxByTable(tableId)
+                    jeuxByTable[tableId] = repo.getJeuxByTable(tableId)
                 }
             }
 
@@ -274,7 +274,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                 zonesTarifaires   = zonesTarifaires,
                 zonesDuPlan       = zonesDuPlan,
                 tablesByZone      = tablesByZone,
-                jeusByTable       = jeusByTable,
+                jeuxByTable       = jeuxByTable,
                 reservationTables = reservationTables
             )
         } catch (e: Exception) {
@@ -466,7 +466,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                 } else {
                     repo.getJeuxByTable(tableId)
                 }
-                update { copy(jeusByTable = jeusByTable + (tableId to jeux)) }
+                update { copy(jeuxByTable = jeuxByTable + (tableId to jeux)) }
 
             } catch (e: Exception) {
                 update { copy(error = e.message) }
@@ -609,10 +609,15 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                     (_uiState.value.reservationTables[resaId] ?: emptyList()).mapNotNull { it.id }.toSet()
                 } else emptySet()
 
-                val free = tables.filter { 
-                    it.statut == StatutTable.LIBRE && 
+                // Le backend peut retourner des statuts stales (pas de trigger DELETE).
+                // On préfère l'état local patché quand il existe.
+                val localCache = _uiState.value.tablesByZone[zoneId]?.associateBy { it.id } ?: emptyMap()
+                val corrected = tables.map { t -> localCache[t.id] ?: t }
+
+                val free = corrected.filter {
+                    it.statut == StatutTable.LIBRE &&
                     (it.nbJeuxActuels == null || it.nbJeuxActuels == 0) &&
-                    it.id !in reservedIds 
+                    it.id !in reservedIds
                 }
                 update { copy(tablesForResaZone = free) }
             } catch (e: Exception) {
@@ -639,13 +644,28 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun removeTableFromReservation(resaId: Int, tableId: Int) {
+        // Récupérer le zoneId avant la suppression pour pouvoir rafraîchir tablesByZone
+        val zoneId = _uiState.value.reservationTables[resaId]
+            ?.firstOrNull { it.id == tableId }?.zoneDuPlanId
         viewModelScope.launch {
             try {
                 repo.removeTableFromReservation(ReservationTableRequest(resaId, tableId))
+                // Reload reservationTables inline avant le patch pour que isReserved soit correct
                 val tables = repo.getReservationTables(resaId)
-                update { copy(reservationTables = reservationTables + (resaId to tables)) }
-                // Le backend supprime aussi les JeuFestivalTable → 0 jeux sur la table
-                // isReserved sera false (table plus dans reservationTables) → statut LIBRE
+                update {
+                    copy(
+                        reservationTables = reservationTables + (resaId to tables),
+                        resaTableJeux = resaTableJeux - tableId,
+                        expandedResaTableIds = expandedResaTableIds - tableId
+                    )
+                }
+                // Peupler tablesByZone avec les données fraîches de l'API (statut encore stale),
+                // puis patchTableStatut corrige immédiatement le statut à LIBRE dans les deux maps.
+                // Nécessaire pour que selectZoneForResaTable voie la table disponible.
+                if (zoneId != null) {
+                    val zoneTables = repo.getTables(zoneId)
+                    update { copy(tablesByZone = tablesByZone + (zoneId to zoneTables)) }
+                }
                 patchTableStatut(tableId, 0)
                 loadReservations()
             } catch (e: Exception) {

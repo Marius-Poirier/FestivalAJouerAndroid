@@ -1217,6 +1217,25 @@ private fun ResaTableRow(
                         Icon(Icons.Default.Add, "Assigner un jeu", tint = BrightBlue, modifier = Modifier.size(16.dp))
                     }
                 }
+                var showConfirm by remember { mutableStateOf(false) }
+                IconButton(onClick = { showConfirm = true }, modifier = Modifier.size(30.dp)) {
+                    Icon(Icons.Default.Delete, "Retirer la table", tint = Destructive, modifier = Modifier.size(16.dp))
+                }
+                if (showConfirm) {
+                    AlertDialog(
+                        onDismissRequest = { showConfirm = false },
+                        title = { Text("Retirer la table") },
+                        text = { Text("Retirer la table #${table.id} de la réservation ? Les jeux assignés à cette table seront désassignés.") },
+                        confirmButton = {
+                            TextButton(onClick = { showConfirm = false; onRemove() }) {
+                                Text("Retirer", color = Destructive)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showConfirm = false }) { Text("Annuler") }
+                        }
+                    )
+                }
             }
         }
 

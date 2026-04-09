@@ -39,7 +39,7 @@ class OfflineWorkflowRepository(
         zonesTarifaires: List<ZoneTarifaireDto>,
         zonesDuPlan: List<ZoneDuPlanDto>,
         tablesByZone: Map<Int, List<TableJeuDto>>,
-        jeusByTable: Map<Int, List<JeuTableDto>>,
+        jeuxByTable: Map<Int, List<JeuTableDto>>,
         reservationTables: Map<Int, List<TableJeuDto>>
     ) {
         // on repart de zéro à chaque synchronisation
@@ -61,7 +61,7 @@ class OfflineWorkflowRepository(
         val allTables = tablesByZone.flatMap { (zoneId, tables) ->tables.mapNotNull { t -> if (t.id != null) t.toEntity(zoneId) else null }}
         tableJeuDao.insertAll(allTables)
         //on complete les informations des table avec la table jeutable 
-        val allJeuxTable = jeusByTable.flatMap { (tableId, jeux) ->jeux.map { j -> j.toEntity(tableId) }}
+        val allJeuxTable = jeuxByTable.flatMap { (tableId, jeux) ->jeux.map { j -> j.toEntity(tableId) }}
         jeuTableDao.insertAll(allJeuxTable)
 
         //on fait le lien avec la relation reservation table
